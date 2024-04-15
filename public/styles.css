@@ -1,0 +1,153 @@
+body{
+    background-color: lightgray;
+    font-family: Arial, sans-serif;
+}
+
+[contenteditable] { 
+    outline: 0px solid transparent; 
+} 
+
+#chatContainer{
+    background-color: rgb(137, 137, 137);
+    border-radius: 10px;
+    margin-left: 50px;
+    margin-right: 50px;
+    padding: 20px;
+    overflow-y: auto;
+    overflow: hidden;
+}
+
+.messageContainer{
+    border-radius: 10px;
+    padding: 10px;
+    padding-bottom: 4px;
+    margin-bottom: 10px;
+}
+
+.userMessage{
+    background-color: white;
+    /*background-color: rgb(52 53 65);*/
+}
+
+.assistantMessage{
+    background-color: rgb(211, 211, 211);
+    /*background-color: rgb(68 70 84);*/
+}
+
+#input{
+    width: calc(100% - 20px);
+    height: auto;
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    margin: auto;
+    margin-top: 10px;
+    outline: none;
+    resize: none;
+}
+
+.utilityButtonContainer{
+    display: flex;
+    visibility: hidden;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+    width: 100%;
+}
+
+.buttonGroup{
+    display: flex;
+    justify-content: flex-end;
+}
+
+.treeControl {
+    visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+}
+
+.treeNode{
+    font-size: 10px;
+}
+
+.messageContainer:hover .utilityButtonContainer{
+    visibility: visible;
+}
+
+.messageUtility > svg{
+    display: flex;
+    justify-content: space-between;
+    cursor: pointer;
+    margin: auto;
+    color: #7e7e7e;
+}
+
+.messageUtility{
+    background-color: transparent;
+    border: none;
+    outline: none;
+    text-align: center;
+    border-radius: 30%;
+    width: 24px;
+    height: 24px;
+    padding: 2px;
+}
+
+.userMessage .messageUtility:hover{
+    background-color: lightgray;
+}
+.assistantMessage .messageUtility:hover{
+    background-color: white;
+}
+
+.editButtons{
+    display: none;
+    margin-top: 10px;
+    justify-content: center;
+}
+
+.editButtonsButton{
+    background-color: rgb(233, 233, 233);
+    border: none;
+    border-radius: 5px;
+    padding: 5px;
+    cursor: pointer;
+    margin: 5px;
+    width: 110px;
+    height: 40px;
+}
+
+.generateButton{
+    background-color: rgb(48, 204, 165);
+}
+
+.rotate-180{
+    transform: rotate(180deg);
+}
+
+.down, .up{
+    padding: 5px;
+}
+
+.userSelect {
+    cursor: pointer;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    background-color: rgb(220, 220, 220);
+    font-weight: bold;
+    text-align: left;
+}
+
+.userSelect:hover {
+    background-color: rgb(163, 163, 163);
+}
+
+.message{
+    margin-left: 3px;
+}
+
+#templates{
+    display: none;
+}

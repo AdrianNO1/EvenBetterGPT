@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div id="chatContainer">
+        <div id="templates">
+            <div class="userMessage messageContainer">
+                <select class="userSelect">
+                    <option value="User">User</option>
+                    <option class="assistantOption" value="Assistant">Assistant</option>
+                    <option value="System">System</option>
+                </select>
+                
+                <div class="message"></div>
+        
+                <div class="utilityButtonContainer">
+                    <div class="treeControl">
+                        <button class="messageUtility back" onclick="utilityBack(this)">
+                            <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="icon-xs" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                        </button>
+                        <p class="treeNode">2 / 2</p>
+                        <button class="messageUtility forward" onclick="utilityForward(this)">
+                            <svg class="rotate-180" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="icon-xs" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                        </button>
+                    </div>
+                    <div class="buttonGroup">
+                        <button class="messageUtility up" onclick="utilityUp(this)">
+                            <svg class="rotate-180" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <button class="messageUtility down" onclick="utilityDown(this)">
+                            <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>              
+                        </button>
+                        <button class="messageUtility copy" onclick="utilityCopy(this)">
+                            <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                        </button>
+                        <button class="messageUtility yes" onclick="utilityYes(this)">
+                            <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </button>
+                        <button class="messageUtility no" onclick="utilityNo(this)">
+                            <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                        <button class="messageUtility edit" onclick="utilityEdit(this)">
+                            <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        </button>
+                        <button class="messageUtility delete" onclick="utilityDelete(this)">
+                            <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="editButtons">
+                    <button class="editButtonsButton generateButton">Generate</button>
+                    <button class="editButtonsButton saveButton">Save</button>
+                    <button class="editButtonsButton cancelButton">Cancel</button>
+                </div>
+            </div>
+        </div>
+        <textarea type="text" id="input" autocomplete="false"></textarea>
+    </div>
+</body>
+<script>
+    function handleEnterSubmit(event) {
+        if (!isGenerating){
+            if (event.which === 13 && !event.shiftKey) {
+                event.preventDefault();
+                let prompt = event.target.value
+                event.target.value = ""
+                add_chat_message(prompt, "user", messages.length);
+                messagesTree.addMessage({"role": "user", "content": prompt})
+                runApiCall(messages, add_chat_message("", "assistant", messages.length))
+            }
+        }
+    }
+
+    function messageToHTML(content){
+        total = ""
+        
+        content.split("\n").forEach(part => {
+            total += `<p>${(part.trim().length == 0 ? "<br>" : part)}</p>`
+        });
+        return total
+    }
+
+    function utilityUp(button){
+        let obj = button.parentElement.parentElement
+
+        if (obj.previousElementSibling && obj.previousElementSibling.classList.contains("messageContainer")){
+            obj.parentElement.insertBefore(obj, obj.previousElementSibling)
+            updateArrows(obj)
+
+            let temp = messages[obj.messageIndex]
+            messages[obj.messageIndex] = messages[obj.messageIndex-1]
+            messages[obj.messageIndex-1] = temp
+
+            obj.messageIndex -= 1
+            obj.nextElementSibling.messageIndex += 1
+        }
+    }
+
+    function utilityDown(button){
+        let obj = button.parentElement.parentElement
+
+        if (obj.nextElementSibling && obj.nextElementSibling.classList.contains("messageContainer")){
+            obj.parentElement.insertBefore(obj.nextElementSibling, obj)
+            updateArrows(obj)
+            console.log(messages)
+
+            let temp = messages[obj.messageIndex]
+            messages[obj.messageIndex] = messages[obj.messageIndex+1]
+            messages[obj.messageIndex+1] = temp // no need to branch out
+
+            obj.messageIndex += 1
+            obj.previousElementSibling.messageIndex -= 1
+        }
+    }
+
+    function utilityCopy(button){
+        let obj = button.parentElement.parentElement
+        
+        console.log(obj.messageIndex)
+        let text = messages[obj.messageIndex].content
+        navigator.clipboard.writeText(text)
+
+        
+        obj.querySelector(".yes").onclick = null
+        obj.querySelector(".copy").style.display = "none"
+        obj.querySelector(".yes").style.display = "block"
+
+        obj.onmouseleave = function(){
+            obj.querySelector(".copy").style.display = "block"
+            obj.querySelector(".yes").style.display = "none"
+            obj.onmouseleave = null
+        }
+    }
+
+    function utilityDelete(button){
+        let obj = button.parentElement.parentElement
+
+        function notdelete(){
+            obj.querySelector(".copy").style.display = "block"
+            obj.querySelector(".edit").style.display = "block"
+            obj.querySelector(".delete").style.display = "block"
+            obj.querySelector(".yes").style.display = "none"
+            obj.querySelector(".no").style.display = "none"
+            obj.querySelector(".yes").onclick = null
+            obj.querySelector(".no").onclick = null
+            updateArrows(obj)
+            obj.onmouseleave = null
+        }
+
+        function remove(){
+            let nextSibling = obj.nextElementSibling
+            obj.remove()
+            messages.splice(obj.messageIndex, 1) // TODO: branch out
+
+            while (nextSibling && nextSibling.classList.contains("messageContainer")){
+                nextSibling.messageIndex -= 1
+                nextSibling = nextSibling.nextElementSibling
+            }
+
+            updateArrows(nextSibling)
+        }
+
+        obj.querySelector(".no").onclick = notdelete
+        obj.querySelector(".yes").onclick = remove
+
+        obj.querySelector(".no").style.display = "block"
+        obj.querySelector(".yes").style.display = "block"
+
+        obj.querySelector(".up").style.display = "none"
+        obj.querySelector(".down").style.display = "none"
+        obj.querySelector(".copy").style.display = "none"
+        obj.querySelector(".edit").style.display = "none"
+        obj.querySelector(".delete").style.display = "none"
+
+        obj.onmouseleave = notdelete
+    }
+
+    function utilityEdit(button){
+        let obj = button.parentElement.parentElement
+
+        obj.querySelector(".utilityButtonContainer").style.display = "none"
+        obj.querySelector(".editButtons").style.display = "flex"
+        
+        let oldText = obj.querySelector(".message").innerHTML
+
+        obj.querySelector(".message").contentEditable = true
+
+        function save(){
+            obj.querySelector(".message").contentEditable = false
+            obj.querySelector(".editButtons").style.display = "none"
+            obj.querySelector(".utilityButtonContainer").style.display = "flex"
+            obj.querySelector(".message").innerHTML = messageToHTML(obj.querySelector(".message").innerText)
+            messages[obj.messageIndex].content = obj.querySelector(".message").innerText
+            // TODO: branch out
+        }
+
+        function cancel(){
+            obj.querySelector(".message").contentEditable = false
+            obj.querySelector(".editButtons").style.display = "none"
+            obj.querySelector(".utilityButtonContainer").style.display = "flex"
+            obj.querySelector(".message").innerHTML = oldText
+        }
+
+        obj.querySelector(".saveButton").onclick = save
+        obj.querySelector(".cancelButton").onclick = cancel
+    }
+
+    function updateArrows(obj, recursive=false){
+        if (obj && obj.classList.contains("messageContainer")){
+            if (obj.nextElementSibling && obj.nextElementSibling.classList.contains("messageContainer")){
+                obj.querySelector(".down").style.display = "block";
+                obj.showDownArrow = true
+            } else {
+                obj.querySelector(".down").style.display = "none";
+                obj.showDownArrow = false
+            }
+            if (obj.previousElementSibling && obj.previousElementSibling.classList.contains("messageContainer")){
+                obj.querySelector(".up").style.display = "block";
+                obj.showUpArrow = true
+            } else {
+                obj.querySelector(".up").style.display = "none";
+                obj.showUpArrow = true
+            }
+            if (!recursive){
+                updateArrows(obj.nextElementSibling, true);
+                updateArrows(obj.previousElementSibling, true);
+            }
+        }
+    }
+
+    function add_chat_message(content, user, index){
+        let htmlObject = templates[user].cloneNode(true)
+        htmlObject.querySelector(".message").innerHTML = messageToHTML(content)
+        htmlObject.messageIndex = index
+        htmlObject.querySelector(".userSelect").value = { "user": "User", "assistant": "Assistant", "system": "System" }[user]
+        
+        chatContainer.insertBefore(htmlObject, input)
+        updateArrows(htmlObject)
+
+        //htmlObject.onmouseover = function(){
+        //    htmlObject.querySelector(".utilityButtonContainer").style.display = "block"
+        //}
+        
+        return htmlObject.querySelector(".message")
+    }
+
+    async function createNewChat(chatData) {
+        try {
+            const response = await fetch('/newchat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(chatData)
+            });
+            
+            const data = await response.json();
+            console.log('Response from server:', data);
+            add_newchat_html(data.chatname)
+            
+        } catch (error) {
+            console.error('Error creating new chat:', error);
+        }
+    }
+
+    function runApiCall(messages, element){
+        isGenerating = true
+        const data = {
+            model: "gpt-3.5-turbo",
+            messages: messages,
+            temperatue: 0,
+            maxTokens: 400,
+
+            chat: "test"
+        };
+        
+        fetch('/submit', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        }).then(response => {
+            const reader = response.body.getReader();
+            let totalText = ""
+            return new ReadableStream({
+                start(controller) {
+                    function push() {
+                        reader.read().then(({ done, value }) => {
+                            if (done) {
+                                controller.close();
+                                isGenerating = false
+                                return;
+                            }
+                            controller.enqueue(value);
+                            totalText += new TextDecoder().decode(value, { stream: true });
+                            messages[messages.length-1].content = totalText
+                            msg_obj.message.content = totalText
+                            htmlContent = messageToHTML(totalText)
+                            element.innerHTML = htmlContent
+                            push();
+                        }).catch(error => {
+                            isGenerating = false
+                            console.error('Error:', error);
+                            controller.error(error);
+                        });
+                    }
+                    let msg_obj = messagesTree.addMessage({"role": "assistant", "content": ""})
+                    push();
+                }
+            });
+        }).catch(error => {
+            console.error('Error:', error);
+        });
+    };
+
+
+    class MessageNode {
+        constructor(message, id) {
+            this.message = message;
+            this.id = id;
+            this.parent = null;
+            this.children = [];
+        }
+    }
+
+    class MessageTree {
+        constructor() {
+            this.root = null;
+            this.currentNode = null;
+        }
+
+        addMessage(message) {
+            messages.push(message)
+            const newNode = new MessageNode(message, Date.now() + Math.random().toString(16).slice(2));
+            if (!this.root) {
+            this.root = newNode;
+            } else {
+            newNode.parent = this.currentNode;
+            this.currentNode.children.push(newNode);
+            }
+            this.currentNode = newNode;
+            return newNode
+        }
+
+        branchOut() {
+            this.currentNode.parent.children.push(JSON.parse(JSON.stringify(this.currentNode)));
+            this.currentNode = this.currentNode.parent.children[this.currentNode.parent.children.length - 1];
+        }
+
+        getMessagesList() {
+            const messages = [];
+            let node = this.currentNode
+            while (node != this.root) {
+                messages.push(node.message);
+                node = node.parent;
+            }
+            messages.push(this.root.message);
+            return messages.reverse();
+        }
+    }
+
+    let messages = []
+    messagesTree = new MessageTree()
+    messagesTree.addMessage({"role": "system", "content": "You are a helpful assistant."})
+    console.log(messages)
+
+    let isGenerating = false
+    let chatContainer = document.getElementById("chatContainer")
+    let templateContainer = document.getElementById("templates")
+
+    templateContainer.firstElementChild.querySelector(".yes").style.display = "none";
+    templateContainer.firstElementChild.querySelector(".no").style.display = "none";
+
+    let userTemplate = templateContainer.firstElementChild.cloneNode(true)
+    let assistantTemplate = templateContainer.firstElementChild.cloneNode(true)
+    assistantTemplate.classList.remove("userMessage")
+    assistantTemplate.classList.add("assistantMessage")
+    
+    let templates = {
+        "user": userTemplate.cloneNode(true),
+        "assistant": assistantTemplate.cloneNode(true)
+    }
+
+
+    document.addEventListener('DOMContentLoaded', (event) => {
+        promptinput = document.getElementById("input")
+        gen = document.getElementById("gen")
+        
+        //messages.push({"role": "user", "content": "Hi"})
+        //runApiCall(messages, gen)
+
+        promptinput.addEventListener('keydown', handleEnterSubmit);
+    });
+</script>
+</html>

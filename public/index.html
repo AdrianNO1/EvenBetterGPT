@@ -5,8 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="treant-js-master/Treant.css" type="text/css"/>
 </head>
 <body>
+    <div class="buttonLine">
+        <div class="btnContainer btenModelSelect">
+            <p>Model: </p>
+            <p class="btnNumber">gpt-3.5-turbo</p>
+        </div>
+        <div class="btnContainer btwMaxToken">
+            <p>Max Token:</p>
+            <p class="btnNumber">4000</p>
+        </div>
+        <div class="btnContainer btwTemperature">
+            <p>Temperature:</p>
+            <p class="btnNumber">0</p>
+        </div>
+        <div class="btnContainer btnTopP">
+            <p>Top-p:</p>
+            <p class="btnNumber">1</p>
+        </div>
+        <div class="btnContainer btnPresencePenalty">
+            <p>Presence Penalty:</p>
+            <p class="btnNumber">0</p>
+        </div>
+        <div class="btnContainer btnFrequencyPenalty">
+            <p>Frequency Penalty:</p>
+            <p class="btnNumber">0</p>
+        </div>
+        <div class="settingsSelector">
+            <input type="range" min="0" max="2" value="1" step="0.1" class="slider">
+        </div>
+    </div>
     <div id="chatContainer">
         <div id="templates">
             <div class="userMessage messageContainer">
@@ -38,11 +68,11 @@
                         <button class="messageUtility copy" onclick="utilityCopy(this)">
                             <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
                         </button>
-                        <button class="messageUtility yes" onclick="utilityYes(this)">
-                            <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                        </button>
                         <button class="messageUtility no" onclick="utilityNo(this)">
                             <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                        <button class="messageUtility yes" onclick="utilityYes(this)">
+                            <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         </button>
                         <button class="messageUtility edit" onclick="utilityEdit(this)">
                             <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
@@ -61,375 +91,14 @@
             </div>
         </div>
         <textarea type="text" id="input" autocomplete="false"></textarea>
-        <!--TODO: Add a save and generate button-->
+        <div class="editButtonsBottom">
+            <button class="editButtonsButton generateButton">Generate</button>
+            <button class="editButtonsButton saveButton">Save</button>
+        </div>
     </div>
+    <div id="tree-simple"></div>
 </body>
-<script>
-    function handleEnterSubmit(event) {
-        if (!isGenerating){
-            if (event.which === 13 && !event.shiftKey) {
-                event.preventDefault();
-                let prompt = event.target.value
-                event.target.value = ""
-                add_chat_message(prompt, "user", messages.length);
-                messagesTree.addMessage({"role": "user", "content": prompt})
-                runApiCall(messages, add_chat_message("", "assistant", messages.length))
-            }
-        }
-    }
-
-    function messageToHTML(content){
-        total = ""
-        
-        content.split("\n").forEach(part => {
-            total += `<p>${(part.trim().length == 0 ? "<br>" : part)}</p>`
-        });
-        return total
-    }
-
-    function utilityUp(button){
-        let obj = button.parentElement.parentElement.parentElement
-
-        if (obj.previousElementSibling && obj.previousElementSibling.classList.contains("messageContainer")){
-            obj.parentElement.insertBefore(obj, obj.previousElementSibling)
-            updateArrows(obj)
-
-            let temp = messages[obj.messageIndex]
-            messages[obj.messageIndex] = messages[obj.messageIndex-1]
-            messages[obj.messageIndex-1] = temp
-
-            obj.messageIndex -= 1
-            obj.nextElementSibling.messageIndex += 1
-        }
-    }
-
-    function utilityDown(button){
-        let obj = button.parentElement.parentElement.parentElement
-
-        if (obj.nextElementSibling && obj.nextElementSibling.classList.contains("messageContainer")){
-            obj.parentElement.insertBefore(obj.nextElementSibling, obj)
-            updateArrows(obj)
-            console.log(messages)
-
-            let temp = messages[obj.messageIndex]
-            messages[obj.messageIndex] = messages[obj.messageIndex+1]
-            messages[obj.messageIndex+1] = temp // no need to branch out
-
-            obj.messageIndex += 1
-            obj.previousElementSibling.messageIndex -= 1
-        }
-    }
-
-    function utilityCopy(button){
-        let obj = button.parentElement.parentElement.parentElement
-        
-        console.log(obj.messageIndex)
-        let text = messages[obj.messageIndex].content
-        navigator.clipboard.writeText(text)
-
-        
-        obj.querySelector(".yes").onclick = null
-        obj.querySelector(".copy").style.display = "none"
-        obj.querySelector(".yes").style.display = "block"
-
-        obj.onmouseleave = function(){
-            obj.querySelector(".copy").style.display = "block"
-            obj.querySelector(".yes").style.display = "none"
-            obj.onmouseleave = null
-        }
-    }
-
-    function utilityDelete(button){
-        let obj = button.parentElement.parentElement.parentElement
-
-        function notdelete(){
-            obj.querySelector(".copy").style.display = "block"
-            obj.querySelector(".edit").style.display = "block"
-            obj.querySelector(".delete").style.display = "block"
-            obj.querySelector(".yes").style.display = "none"
-            obj.querySelector(".no").style.display = "none"
-            obj.querySelector(".yes").onclick = null
-            obj.querySelector(".no").onclick = null
-            updateArrows(obj)
-            obj.onmouseleave = null
-        }
-
-        function remove(){
-            let nextSibling = obj.nextElementSibling
-            obj.remove()
-            messages.splice(obj.messageIndex, 1) // TODO: branch out. don't delete below messages. reattach the cut off branch
-
-            while (nextSibling && nextSibling.classList.contains("messageContainer")){
-                nextSibling.messageIndex -= 1
-                nextSibling = nextSibling.nextElementSibling
-            }
-
-            updateArrows(nextSibling)
-        }
-
-        obj.querySelector(".no").onclick = notdelete
-        obj.querySelector(".yes").onclick = remove
-
-        obj.querySelector(".no").style.display = "block"
-        obj.querySelector(".yes").style.display = "block"
-
-        obj.querySelector(".up").style.display = "none"
-        obj.querySelector(".down").style.display = "none"
-        obj.querySelector(".copy").style.display = "none"
-        obj.querySelector(".edit").style.display = "none"
-        obj.querySelector(".delete").style.display = "none"
-
-        obj.onmouseleave = notdelete
-    }
-
-    function utilityEdit(button){
-        let obj = button.parentElement.parentElement.parentElement
-
-        obj.querySelector(".utilityButtonContainer").style.display = "none"
-        obj.querySelector(".editButtons").style.display = "flex"
-        
-        let oldText = obj.querySelector(".message").innerHTML
-
-        obj.querySelector(".message").contentEditable = true
-
-        function save(){
-            obj.querySelector(".message").contentEditable = false
-            obj.querySelector(".editButtons").style.display = "none"
-            obj.querySelector(".utilityButtonContainer").style.display = "flex"
-            obj.querySelector(".message").innerHTML = messageToHTML(obj.querySelector(".message").innerText)
-            messages[obj.messageIndex].content = obj.querySelector(".message").innerText
-            // TODO: branch out
-        }
-
-        function cancel(){
-            obj.querySelector(".message").contentEditable = false
-            obj.querySelector(".editButtons").style.display = "none"
-            obj.querySelector(".utilityButtonContainer").style.display = "flex"
-            obj.querySelector(".message").innerHTML = oldText
-        }
-
-        obj.querySelector(".saveButton").onclick = save
-        obj.querySelector(".cancelButton").onclick = cancel
-    }
-
-    function updateArrows(obj, recursive=false){
-        if (obj && obj.classList.contains("messageContainer")){
-            if (obj.nextElementSibling && obj.nextElementSibling.classList.contains("messageContainer")){
-                obj.querySelector(".down").style.display = "block";
-                obj.showDownArrow = true
-            } else {
-                obj.querySelector(".down").style.display = "none";
-                obj.showDownArrow = false
-            }
-            if (obj.previousElementSibling && obj.previousElementSibling.classList.contains("messageContainer")){
-                obj.querySelector(".up").style.display = "block";
-                obj.showUpArrow = true
-            } else {
-                obj.querySelector(".up").style.display = "none";
-                obj.showUpArrow = true
-            }
-            if (!recursive){
-                updateArrows(obj.nextElementSibling, true);
-                updateArrows(obj.previousElementSibling, true);
-            }
-        }
-    }
-
-    function updateTreeControl(){
-        let TC = messagesTree.getTreeControl()
-        TC.forEach((element, index) => {
-            chatContainer.children[index].querySelector(".treeNode").innerHTML = `${element[0]} / ${element[1]}`
-            if (element[1] > 1 || 1){
-                chatContainer.children[index].querySelector(".treeControl").style.visibility = "visible"
-            }
-        });
-    }
-
-    function add_chat_message(content, user, index){
-        let htmlObject = templates[user].cloneNode(true)
-        htmlObject.querySelector(".message").innerHTML = messageToHTML(content)
-        htmlObject.messageIndex = index
-        htmlObject.querySelector(".userSelect").value = { "user": "User", "assistant": "Assistant", "system": "System" }[user]
-        // TODO: make the user select change the role of the message
-
-        chatContainer.insertBefore(htmlObject, input)
-        updateArrows(htmlObject)
-
-        //htmlObject.onmouseover = function(){
-        //    htmlObject.querySelector(".utilityButtonContainer").style.display = "block"
-        //}
-        
-        return htmlObject.querySelector(".message")
-    }
-
-    async function createNewChat(chatData) {
-        try {
-            const response = await fetch('/newchat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(chatData)
-            });
-            
-            const data = await response.json();
-            console.log('Response from server:', data);
-            add_newchat_html(data.chatname)
-            
-        } catch (error) {
-            console.error('Error creating new chat:', error);
-        }
-    }
-
-    function runApiCall(messages, element){
-        isGenerating = true
-        const data = {
-            model: "gpt-3.5-turbo",
-            messages: messages,
-            temperatue: 0,
-            maxTokens: 400,
-
-            chat: "test"
-        };
-        
-        fetch('/submit', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data),
-        }).then(response => {
-            const reader = response.body.getReader();
-            let totalText = ""
-            return new ReadableStream({
-                start(controller) {
-                    function push() {
-                        reader.read().then(({ done, value }) => {
-                            if (done) {
-                                controller.close();
-                                isGenerating = false
-                                return;
-                            }
-                            controller.enqueue(value);
-                            totalText += new TextDecoder().decode(value, { stream: true });
-                            messages[messages.length-1].content = totalText
-                            msg_obj.message.content = totalText
-                            htmlContent = messageToHTML(totalText)
-                            element.innerHTML = htmlContent
-                            push();
-                        }).catch(error => {
-                            isGenerating = false
-                            console.error('Error:', error);
-                            controller.error(error);
-                        });
-                    }
-                    let msg_obj = messagesTree.addMessage({"role": "assistant", "content": ""})
-                    push();
-                }
-            });
-        }).catch(error => {
-            console.error('Error:', error);
-        });
-    };
-
-
-    class MessageNode {
-        constructor(message, id) {
-            this.message = message;
-            this.id = id;
-            this.parent = null;
-            this.children = [];
-        }
-    }
-
-    class MessageTree {
-        constructor() {
-            this.root = null;
-            this.currentNode = null;
-            this.nodeIds = {}
-        }
-
-        addMessage(message) {
-            messages.push(message)
-            let id = Date.now() + Math.random().toString(16).slice(2)
-            const newNode = new MessageNode(message, id);
-            this.nodeIds[id] = newNode
-            if (!this.root) {
-            this.root = newNode;
-            } else {
-            newNode.parent = this.currentNode;
-                this.currentNode.children.push(newNode);
-            }
-            this.currentNode = newNode;
-            return newNode
-        }
-
-        branchOut(node) {
-            function recursivlyCopy(node){
-                let newNode = new MessageNode(node.message, Date.now() + Math.random().toString(16).slice(2))
-                newNode.parent = node.parent
-                node.parent.children.push(newNode)
-                node.children.forEach(child => {
-                    recursivlyCopy(child)
-                });
-            }
-            recursivlyCopy(node)
-        }
-
-        getMessagesList() {
-            const messages = [];
-            let node = this.currentNode
-            while (node != this.root) {
-                messages.push(node.message);
-                node = node.parent;
-            }
-            messages.push(this.root.message);
-            return messages.reverse();
-        }
-
-        getTreeControl(){
-            let node = this.currentNode
-            let control = []
-            while (node != this.root) {
-                control.push([node.parent.children.indexOf(node) + 1, node.parent.children.length]);
-                node = node.parent;
-            }
-            control.push([1, 1]) // what if root node branches?
-            return control.reverse()
-        }
-    }
-
-    let messages = []
-    messagesTree = new MessageTree()
-    messagesTree.addMessage({"role": "system", "content": "You are a helpful assistant."})
-    console.log(messages)
-
-    let isGenerating = false
-    let chatContainer = document.getElementById("chatContainer")
-    let templateContainer = document.getElementById("templates")
-
-    templateContainer.firstElementChild.querySelector(".yes").style.display = "none";
-    templateContainer.firstElementChild.querySelector(".no").style.display = "none";
-
-    let userTemplate = templateContainer.firstElementChild.cloneNode(true)
-    let assistantTemplate = templateContainer.firstElementChild.cloneNode(true)
-    assistantTemplate.classList.remove("userMessage")
-    assistantTemplate.classList.add("assistantMessage")
-    
-    let templates = {
-        "user": userTemplate.cloneNode(true),
-        "assistant": assistantTemplate.cloneNode(true)
-    }
-
-
-    document.addEventListener('DOMContentLoaded', (event) => {
-        promptinput = document.getElementById("input")
-        gen = document.getElementById("gen")
-        
-        //messages.push({"role": "user", "content": "Hi"})
-        //runApiCall(messages, gen)
-
-        promptinput.addEventListener('keydown', handleEnterSubmit);
-    });
-</script>
+<script src="treant-js-master/vendor/raphael.js"></script>
+<script src="treant-js-master/Treant.js"></script>
+<script src="script.js"></script>
 </html>

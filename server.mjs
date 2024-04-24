@@ -100,7 +100,6 @@ app.post('/submit', async (req, res) => {
                 if (i % 5 == 0){
                     writeToFile(path.join(chatsPath, chat + ".json"), JSON.stringify(data, null, 2));
                 }
-                console.log(chunk.choices[0].delta.content)
                 res.write(chunk.choices[0].delta.content);
                 i += 1
             }

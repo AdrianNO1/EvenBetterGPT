@@ -8,97 +8,142 @@
     <link rel="stylesheet" href="treant-js-master/Treant.css" type="text/css"/>
 </head>
 <body>
-    <div class="buttonLine">
-        <div class="btnContainer btenModelSelect">
-            <p>Model: </p>
-            <p class="btnNumber">gpt-3.5-turbo</p>
+    <div class="sideBar">
+        <button class="chat newChatButton" onclick="createNewChat()">
+            <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <p>New Chat</p>
+        </button>
+        <div class="chat searchBar">
+            <input type="text" placeholder="Search">
         </div>
-        <div class="btnContainer btwMaxToken">
-            <p>Max Token:</p>
-            <p class="btnNumber">4000</p>
-        </div>
-        <div class="btnContainer btwTemperature">
-            <p>Temperature:</p>
-            <p class="btnNumber">0</p>
-        </div>
-        <div class="btnContainer btnTopP">
-            <p>Top-p:</p>
-            <p class="btnNumber">1</p>
-        </div>
-        <div class="btnContainer btnPresencePenalty">
-            <p>Presence Penalty:</p>
-            <p class="btnNumber">0</p>
-        </div>
-        <div class="btnContainer btnFrequencyPenalty">
-            <p>Frequency Penalty:</p>
-            <p class="btnNumber">0</p>
-        </div>
-        <div class="settingsSelector">
-            <input type="range" min="0" max="2" value="1" step="0.1" class="slider">
-        </div>
-    </div>
-    <div id="chatContainer">
-        <div id="templates">
-            <div class="userMessage messageContainer">
-                <select class="userSelect">
-                    <option value="User">User</option>
-                    <option class="assistantOption" value="Assistant">Assistant</option>
-                    <option value="System">System</option>
-                </select>
-                
-                <div class="message"></div>
-        
-                <div class="utilityButtonContainer">
-                    <div class="treeControl">
-                        <button class="messageUtility back" onclick="utilityBack(this)">
-                            <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="icon-xs" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                        </button>
-                        <p class="treeNode">2 / 2</p>
-                        <button class="messageUtility forward" onclick="utilityForward(this)">
-                            <svg class="rotate-180" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="icon-xs" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                        </button>
-                    </div>
-                    <div class="buttonGroup">
-                        <button class="messageUtility up" onclick="utilityUp(this)">
-                            <svg class="rotate-180" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </button>
-                        <button class="messageUtility down" onclick="utilityDown(this)">
-                            <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>              
-                        </button>
-                        <button class="messageUtility copy" onclick="utilityCopy(this)">
-                            <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
-                        </button>
-                        <button class="messageUtility no" onclick="utilityNo(this)">
-                            <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                        </button>
-                        <button class="messageUtility yes" onclick="utilityYes(this)">
-                            <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                        </button>
-                        <button class="messageUtility edit" onclick="utilityEdit(this)">
-                            <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                        </button>
-                        <button class="messageUtility delete" onclick="utilityDelete(this)">
-                            <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                        </button>
-                    </div>
+        <div class="chats">
+            <div class="chat sideBarChatSelectThing" id="chatTemplate">
+                <div class="left-content">
+                    <svg class="chatIcon" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    <p class="chatName">New Chat template</p>
                 </div>
-
-                <div class="editButtons">
-                    <button class="editButtonsButton generateButton">Generate</button>
-                    <button class="editButtonsButton saveButton">Save</button>
-                    <button class="editButtonsButton cancelButton">Cancel</button>
+                <div class="right-content">
+                    <button class="chatsButton chatsButtonEdit" onclick="editChatName(event, this)">
+                        <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                    </button>
+                    <button class="chatsButton chatsButtonDelete" onclick="deleteChat(event, this)">
+                        <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                    </button>
+                    <button class="chatsButton chatsButtonYes" onclick="chatYes(event, this)">
+                        <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </button>
+                    <button class="chatsButton chatsButtonNo" onclick="chatNo(event, this)">
+                        <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
                 </div>
             </div>
         </div>
+        <button class="settings chat">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 512 512" class="w-4 h-4"><path d="M481.9 166.6c3.2 8.7 .5 18.4-6.4 24.6l-30.9 28.1c-7.7 7.1-11.4 17.5-10.9 27.9c.1 2.9 .2 5.8 .2 8.8s-.1 5.9-.2 8.8c-.5 10.5 3.1 20.9 10.9 27.9l30.9 28.1c6.9 6.2 9.6 15.9 6.4 24.6c-4.4 11.9-9.7 23.3-15.8 34.3l-4.7 8.1c-6.6 11-14 21.4-22.1 31.2c-5.9 7.2-15.7 9.6-24.5 6.8l-39.7-12.6c-10-3.2-20.8-1.1-29.7 4.6c-4.9 3.1-9.9 6.1-15.1 8.7c-9.3 4.8-16.5 13.2-18.8 23.4l-8.9 40.7c-2 9.1-9 16.3-18.2 17.8c-13.8 2.3-28 3.5-42.5 3.5s-28.7-1.2-42.5-3.5c-9.2-1.5-16.2-8.7-18.2-17.8l-8.9-40.7c-2.2-10.2-9.5-18.6-18.8-23.4c-5.2-2.7-10.2-5.6-15.1-8.7c-8.8-5.7-19.7-7.8-29.7-4.6L69.1 425.9c-8.8 2.8-18.6 .3-24.5-6.8c-8.1-9.8-15.5-20.2-22.1-31.2l-4.7-8.1c-6.1-11-11.4-22.4-15.8-34.3c-3.2-8.7-.5-18.4 6.4-24.6l30.9-28.1c7.7-7.1 11.4-17.5 10.9-27.9c-.1-2.9-.2-5.8-.2-8.8s.1-5.9 .2-8.8c.5-10.5-3.1-20.9-10.9-27.9L8.4 191.2c-6.9-6.2-9.6-15.9-6.4-24.6c4.4-11.9 9.7-23.3 15.8-34.3l4.7-8.1c6.6-11 14-21.4 22.1-31.2c5.9-7.2 15.7-9.6 24.5-6.8l39.7 12.6c10 3.2 20.8 1.1 29.7-4.6c4.9-3.1 9.9-6.1 15.1-8.7c9.3-4.8 16.5-13.2 18.8-23.4l8.9-40.7c2-9.1 9-16.3 18.2-17.8C213.3 1.2 227.5 0 242 0s28.7 1.2 42.5 3.5c9.2 1.5 16.2 8.7 18.2 17.8l8.9 40.7c2.2 10.2 9.4 18.6 18.8 23.4c5.2 2.7 10.2 5.6 15.1 8.7c8.8 5.7 19.7 7.7 29.7 4.6l39.7-12.6c8.8-2.8 18.6-.3 24.5 6.8c8.1 9.8 15.5 20.2 22.1 31.2l4.7 8.1c6.1 11 11.4 22.4 15.8 34.3zM242 336a80 80 0 1 0 0-160 80 80 0 1 0 0 160z"></path></svg>
+            Settings
+        </button>
+    </div>
+    <div class="chatArea">
+        <div class="buttonLine">
+            <div class="btnContainer btnModelSelect">
+                <p>Model: </p>
+                <select class="modelSelect">
+                </select>
+            </div>
+            <div class="btnContainer btnMaxTokens">
+                <p>Max Tokens:</p>
+                <p class="btnNumber"></p>
+            </div>
+            <div class="btnContainer btnTemperature">
+                <p>Temperature:</p>
+                <p class="btnNumber"></p>
+            </div>
+            <div class="btnContainer btnTopP">
+                <p>Top-p:</p>
+                <p class="btnNumber"></p>
+            </div>
+            <div class="btnContainer btnPrescencePenalty">
+                <p>Presence Penalty:</p>
+                <p class="btnNumber"></p>
+            </div>
+            <div class="btnContainer btnFrequencyPenalty">
+                <p>Frequency Penalty:</p>
+                <p class="btnNumber"></p>
+            </div>
+            <div class="settingsSelector">
+                <input type="range" min="0" max="2" value="1" step="0.1" class="slider">
+            </div>
+        </div>
+        <div id="chatContainer">
+            <div id="templates">
+                <div class="userMessage messageContainer">
+                    <select class="userSelect">
+                        <option value="User">User</option>
+                        <option class="assistantOption" value="Assistant">Assistant</option>
+                        <option value="System">System</option>
+                    </select>
+                    
+                    <div class="message"></div>
+                    
+                    <div class="utilityButtonContainer">
+                        <div class="treeControl">
+                            <button class="messageUtility back" onclick="utilityBack(this)">
+                                <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="icon-xs" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                            </button>
+                            <p class="treeNode">2 / 2</p>
+                            <button class="messageUtility forward" onclick="utilityForward(this)">
+                                <svg class="rotate-180" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="icon-xs" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                            </button>
+                        </div>
+                        <div class="buttonGroup">
+                            <button class="messageUtility up" onclick="utilityUp(this)">
+                                <svg class="rotate-180" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                            <button class="messageUtility down" onclick="utilityDown(this)">
+                                <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>              
+                            </button>
+                            <button class="messageUtility copy" onclick="utilityCopy(this)">
+                                <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                            </button>
+                            <button class="messageUtility no" onclick="utilityNo(this)">
+                                <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                            <button class="messageUtility yes" onclick="utilityYes(this)">
+                                <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            </button>
+                            <button class="messageUtility edit" onclick="utilityEdit(this)">
+                                <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            </button>
+                            <button class="messageUtility delete" onclick="utilityDelete(this)">
+                                <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="editButtons">
+                        <button class="editButtonsButton generateButton">Generate</button>
+                        <button class="editButtonsButton saveButton">Save</button>
+                        <button class="editButtonsButton cancelButton">Cancel</button>
+                    </div>
+            </div>
+        </div>
         <textarea type="text" id="input" autocomplete="false"></textarea>
+        <div class="tokensCost">Tokens: 8 ($0.0000800)</div>
         <div class="editButtonsBottom">
             <button class="editButtonsButton generateButton">Generate</button>
             <button class="editButtonsButton saveButton">Save</button>
+        </div>
+        <div id="errorMessageContainer">
+            <p class="errorMessage">Error message</p>
+            <button class="closeError" onclick="closeError(this)">
+                <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
         </div>
     </div>
     <div id="tree-simple"></div>
 </body>
 <script src="treant-js-master/vendor/raphael.js"></script>
 <script src="treant-js-master/Treant.js"></script>
+<script src="flatted.js"></script>
 <script src="script.js"></script>
 </html>

@@ -1,5 +1,5 @@
 body{
-    background-color: lightgray;
+    background-color: rgb(113, 114, 125);
     font-family: Arial, sans-serif;
 }
 
@@ -10,11 +10,12 @@ body{
 #chatContainer{
     background-color: rgb(137, 137, 137);
     border-radius: 10px;
-    margin-left: 50px;
-    margin-right: 50px;
+    margin-left: auto;
+    margin-right: auto;
     padding: 20px;
     overflow-y: auto;
     overflow: hidden;
+    max-width: 736px;
 }
 
 .messageContainer{
@@ -80,6 +81,10 @@ body{
 
 .messageContainer:hover .utilityButtonContainer{
     visibility: visible;
+}
+
+.messageContainer:nth-child(2) .delete{
+    visibility: hidden;
 }
 
 .messageUtility > svg{
@@ -198,11 +203,33 @@ body{
     align-items: center;
     justify-content: center;
     user-select: none;
+    font-size: 13px;
 }
 
 .buttonLine > .btnContainer > .btnNumber{
     margin-left: 5px;
     user-select: text;
+}
+
+.btnContainer .modelSelect{
+    margin-left: 5px;
+    border-radius: 5px;
+    border: none;
+    background-color: rgb(48, 204, 165);
+    cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+}
+
+.btnContainer .modelSelect:hover{
+    background-color: rgba(70, 122, 109, 0.7);
+}
+
+.btnContainer .modelSelect:focus{
+    outline: none;
 }
 
 .settingsSelector{
@@ -250,4 +277,244 @@ body{
     border-radius: 50%;
     background: #04AA6D;
     cursor: pointer;
+}
+
+#errorMessageContainer{
+    position: relative;
+    background-color: rgb(206, 39, 39, 0.7);
+    color: rgb(255, 255, 255);
+    font-weight: bold;
+    margin-top: 10px;
+    width: calc(100% - 50px*2);
+    margin-left: 50px;
+    margin-right: 50px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    display: none;
+}
+
+.closeError{
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    background-color: transparent;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+#tree-simple{
+    display: none;
+}
+
+.chatArea{
+    margin-left: 230px;
+}
+
+.sideBar{
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 230px;
+    height: 100%;
+    background-color: rgb(32, 33, 35);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 1;
+    color: white;
+    scrollbar-gutter: stable both-edges;
+}
+
+.chats{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.chat{
+    padding: 12px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    background-color: rgb(32, 33, 35);
+    border-radius: 12px;
+    display: flex;
+    margin: 5px;
+    width: calc(100% - 34px);
+    justify-content: space-between;
+    align-items: center;
+    font-size: 15px;
+}
+
+.chats .chat{
+    cursor: pointer;
+    padding-right: 3px;
+    width: calc(100% - 25px);
+}
+
+.chat .left-content, .chat .right-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+
+.chat .right-content{
+    gap: 4px;
+}
+
+.chat.selected{
+    background-color: rgb(52, 53, 65);
+}
+
+.chat.selected .chatsButton{
+    visibility: visible;
+}
+
+.chats .chat:hover:not(.selected){
+    background-color: rgb(52, 53, 65, 0.5);
+}
+
+.chat p{
+    margin: 0;
+    font-size: 14px;
+}
+
+.chatsButton{
+    display: flex;
+    background-color: transparent;
+    border: none;
+    outline: none;
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+    width: 24px;
+    height: 24px;
+    padding: 2px;
+    font-size: 16px;
+    cursor: pointer;
+    color: white;
+    visibility: hidden;
+}
+
+.chatName{
+    white-space: nowrap;
+    overflow: hidden;
+    border-radius: 2px;
+    max-width: 128px;
+}
+
+.chatName:focus{
+    outline: 2px solid rgb(48, 204, 165);
+}
+
+.chatsButton svg {
+    width: 15px;  /* Adjust this value to scale the SVG appropriately */
+    height: 15px; /* This should generally match the width to maintain aspect ratio */
+    align-self: center; /* Ensures vertical alignment in flex container */
+}
+
+.chatsButtonYes svg, .chatsButtonNo svg{
+    padding-top: 3px;
+}
+
+.chatsButtonDelete svg, .chatsButtonEdit svg{
+    padding-top: 1px;
+}
+
+
+
+.chatsButton:hover{
+    background-color: rgb(103, 103, 103);
+    border-radius: 30%;
+}
+
+.chatsButtonYes, .chatsButtonNo{
+    display: none;
+}
+
+.newChatButton, .searchBar, .settings{
+    background-color: transparent;
+    border: none;
+    outline: none;
+    text-align: center;
+    justify-content: left;
+    color: white;
+    border: 2px solid rgb(51, 51, 51);
+    border-radius: 10px;
+    width: calc(100% - 20px);
+    height: 45px;
+}
+
+.settings{
+    width: 100%;
+    border-radius: 0;
+    margin: 0;
+    border-top: 2px solid rgb(51, 51, 51);
+    cursor: pointer;
+}
+
+.settings svg{
+    width: 16px;
+    margin-right: 10px;
+}
+
+.newChatButton{
+    cursor: pointer;
+}
+
+.newChatButton:hover{
+    background-color: rgb(51, 51, 51);
+    transition: 0.2s;
+}
+
+.newChatButton svg{
+    margin-left: 8px;
+    margin-right: 10px;
+    font-size: 16px;
+}
+
+
+.searchBar{
+    width: calc(100% - 48px);
+    height: 15px;
+}
+
+.searchBar input{
+    background-color: transparent;
+    border: none;
+    outline: none;
+    text-align: left;
+    color: white;
+    width: 100%;
+}
+
+.tokensCost{
+    height: 0px;
+    color: rgb(224, 224, 238);
+    font-size: 12px;
+    font-style: italic;
+    text-align: right;
+    width: 100%;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+  
+::-webkit-scrollbar-track {
+    background: rgb(32, 33, 35); 
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888; 
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #747474; 
 }

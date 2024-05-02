@@ -11,7 +11,7 @@ function handleEnterSubmit(event) {
     }
 }
 
-function messageToHTML(content){
+function messageToHTML(content){ // TODO: this is a mess
     return `<p>${content.replace("\n", "<br><br>")}</p>`
     total = ""
     
@@ -144,21 +144,42 @@ function utilityDelete(button){
     }
 
     function remove(){
-        let nextSibling = obj.nextElementSibling
-        obj.remove()
-        messages.splice(obj.messageIndex, 1)
-        
-        messagesTree.branchOut(messagesTree.getNodeFromIndex(obj.messageIndex), update=false)
-        messagesTree.removeNode(messagesTree.getNodeFromIndex(obj.messageIndex))
+        //let nextSibling = obj.nextElementSibling
+        //obj.remove()
+        //messages.splice(obj.messageIndex, 1)
+        //
+        ////messagesTree.branchOut(messagesTree.getNodeFromIndex(obj.messageIndex), update=false, deletedNodeId=messagesTree.getNodeFromIndex(obj.messageIndex).id) // you can't call functiosn like this
+        //messagesTree.currentNode = messagesTree.getNodeFromIndex(obj.messageIndex).parent
+        ////messagesTree.removeNode(messagesTree.getNodeFromIndex(obj.messageIndex))
+        //messagesTree.updateTreant()
+        //updateTreeControl()
+//
+        //while (nextSibling && nextSibling.classList.contains("messageContainer")){
+        //    nextSibling.messageIndex -= 1
+        //    nextSibling = nextSibling.nextElementSibling
+        //}
+//
+        //updateArrows(nextSibling)
+
+
+
+        obj.querySelector(".message").contentEditable = false
+        obj.querySelector(".editButtons").style.display = "none"
+        obj.querySelector(".utilityButtonContainer").style.display = "flex"
+        obj.querySelector(".message").innerHTML = messageToHTML(obj.querySelector(".message").innerText)
+
+        messagesTree.branchOut(messagesTree.getNodeFromIndex(obj.messageIndex-1))
+        messagesTree.hardDeleteToNode(messagesTree.getNodeFromIndex(obj.messageIndex-1))
         messagesTree.updateTreant()
         updateTreeControl()
+        messages.splice(obj.messageIndex + 1, messages.length - obj.messageIndex - 1)
+        messages[obj.messageIndex].content = obj.querySelector(".message").innerText
 
+        let nextSibling = obj
         while (nextSibling && nextSibling.classList.contains("messageContainer")){
-            nextSibling.messageIndex -= 1
             nextSibling = nextSibling.nextElementSibling
+            nextSibling.previousElementSibling.remove()
         }
-
-        updateArrows(nextSibling)
     }
 
     obj.querySelector(".no").onclick = notdelete
@@ -261,7 +282,7 @@ function updateTreeControl(){
     let TC = messagesTree.getTreeControl()
     TC.forEach((element, index) => {
         chatContainer.children[index+1].querySelector(".treeNode").innerHTML = `${element[0]} / ${element[1]}`
-        if (element[1] > 1 || 1){
+        if (element[1] > 1){
             chatContainer.children[index+1].querySelector(".treeControl").style.visibility = "visible"
         }
     });
@@ -301,34 +322,19 @@ function add_chat_message(content, user, index){
     return htmlObject.querySelector(".message")
 }
 
-async function createNewChat(chatData) {
-    try {
-        const response = await fetch('/newchat', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(chatData)
-        });
-        
-        const data = await response.json();
-        console.log('Response from server:', data);
-        add_newchat_html(data.chatname)
-        
-    } catch (error) {
-        console.error('Error creating new chat:', error);
-    }
-}
-
 function runApiCall(messages, element){
     isGenerating = true
+    let msg_obj = messagesTree.addMessage({"role": "assistant", "content": ""})
     const data = {
-        model: "gpt-3.5-turbo",
         messages: messages,
-        temperatue: 0,
-        maxTokens: 400,
-
-        chat: "test"
+        model: settings["model"],
+        maxTokens: settings["maxTokens"],
+        temperature: settings["temperature"],
+        topP: settings["topP"],
+        prescencePenalty: settings["prescencePenalty"],
+        frequencyPenalty: settings["frequencyPenalty"],
+        chatId: currentChatId,
+        messagesTree: Flatted.stringify(messagesTree)
     };
     
     fetch('/submit', {
@@ -363,7 +369,6 @@ function runApiCall(messages, element){
                         controller.error(error);
                     });
                 }
-                let msg_obj = messagesTree.addMessage({"role": "assistant", "content": ""})
                 push();
             }
         });
@@ -415,7 +420,7 @@ class MessageTree {
         return newNode
     }
 
-    branchOut(node, update=true){
+    branchOut(node, update=true, deletedNodeId=null){
         if (disableBranchingStuff){
             return
         }
@@ -426,24 +431,31 @@ class MessageTree {
             
             main.nodeIds[id] = newNode
             newNode.parent = newParent ?? node.parent;
+            let oldCurrentNode = main.currentNode
             if (node.marked){
                 main.currentNode.marked = false
                 main.currentNode = newNode
-                main.currentNode.parent.previouslySelectedChild = newNode
-                let temp = main.currentNode
-                while (temp != main.root){
-                    temp.parent.previouslySelectedChild = temp
-                    temp = temp.parent
+                if (deletedNodeId != node.id){
+                    main.currentNode.parent.previouslySelectedChild = newNode
+                    let temp = main.currentNode
+                    while (temp != main.root){
+                        temp.parent.previouslySelectedChild = temp
+                        temp = temp.parent
+                    }
                 }
             }
-            
             ;(newParent ?? node.parent).children.push(newNode)
-            
-            node.children.forEach(child => {
-                recursivlyCopy(child, main, newNode)
-            });
-            // no idea if this works
-            newNode.previouslySelectedChild = newNode.children[node.children.indexOf(node.previouslySelectedChild)]
+        
+            if (node != oldCurrentNode){
+                node.children.forEach(child => {
+                    recursivlyCopy(child, main, newNode)
+                });
+            }
+            // probably works
+            let newThing = newNode.children[node.children.indexOf(node.previouslySelectedChild)]
+            if (newThing){
+                newNode.previouslySelectedChild = newThing
+            }
         }
         
         recursivlyCopy(node, this)
@@ -552,11 +564,152 @@ class MessageTree {
         }
         recursive(this.root)
         
-        if (this.treant){
-            this.treant.destroy()
+        if (treant){
+            treant.destroy()
         }
-        this.treant = new Treant(chart_config);
+        treant = new Treant(chart_config);
     }
+
+    toString(){
+        function replacer(key, value) {
+            if (value === this) {
+                return "[Circular]";
+            }
+            return value;
+        }
+          
+        return JSON.stringify(this.root, replacer)
+    }
+}
+
+
+function saveChat(){
+    fetch('/savechat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({messages: Flatted.stringify(messagesTree), id: currentChatId})
+    })
+    .then(response => {
+        if (!response.ok) {
+            alert("Error saving chat")
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+}
+
+function chatNo(e, button){
+    e.stopPropagation()
+    unselectChatEditing()
+}
+
+function chatYes(e, button){
+    e.stopPropagation()
+    if (button.parentElement.parentElement.isBeingDeleted){
+        fetch('/deletechat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({id: button.parentElement.parentElement.chatId})
+        })
+        .then(response => {
+            if (!response.ok) {
+                alert("Error deleting chat")
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error){
+                alert(data.error)
+            }
+            else{
+                document.querySelectorAll(".sideBarChatSelectThing").forEach(elem => {
+                    if (elem.id != "chatTemplate"){
+                        if (elem.chatId == button.parentElement.parentElement.chatId){
+                            let parentElement = elem.parentElement
+                            elem.remove()
+                            if (elem.classList.contains("selected")){
+                                selectChat(parentElement.children[1])
+                            }
+                        }
+                    }
+                })
+            }
+        })
+    }
+    else if(button.parentElement.parentElement.isBeingEdited){
+        finalizeChatEditName(button.parentElement.parentElement.querySelector(".chatName"))
+    }
+    else{
+        alert("What the fuck just happened?")
+    }
+}
+
+function deleteChat(e, button){
+    e.stopPropagation()
+    button.parentElement.querySelector(".chatsButtonEdit").style.display = "none"
+    button.parentElement.querySelector(".chatsButtonDelete").style.display = "none"
+    button.parentElement.querySelector(".chatsButtonYes").style.display = "flex"
+    button.parentElement.querySelector(".chatsButtonNo").style.display = "flex"
+    button.parentElement.parentElement.isBeingDeleted = true
+}
+
+function finalizeChatEditName(chatNameP){
+    fetch('/renamechat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({id: chatNameP.parentElement.parentElement.chatId, newname: chatNameP.innerText})
+    })
+    .then(response => {
+        if (!response.ok) {
+            alert("Error deleting chat")
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.error){
+            alert(data.error)
+        }
+        else{
+            chatNameP.innerText = chatNameP.innerText.trim()
+            chatNameP.parentElement.parentElement.editedOldName = chatNameP.innerText
+        }
+        unselectChatEditing()
+    })
+}
+
+function editChatName(e, button){
+    e.stopPropagation()
+    button.parentElement.querySelector(".chatsButtonEdit").style.display = "none"
+    button.parentElement.querySelector(".chatsButtonDelete").style.display = "none"
+    button.parentElement.querySelector(".chatsButtonYes").style.display = "flex"
+    button.parentElement.querySelector(".chatsButtonNo").style.display = "flex"
+    button.parentElement.parentElement.isBeingEdited = true
+
+    let chatNameP = button.parentElement.parentElement.querySelector(".chatName")
+    button.parentElement.parentElement.editedOldName = chatNameP.innerText
+    chatNameP.contentEditable = true
+    chatNameP.focus()
+}
+
+let treant
+
+let errorMessageContainer = document.getElementById("errorMessageContainer")
+
+function closeError(){
+    errorMessageContainer.style.display = "none"
+}
+
+function showError(message){
+    errorMessageContainer.style.display = "flex"
+    errorMessageContainer.querySelector(".errorMessage").innerText = message
 }
 
 function generate(){
@@ -576,32 +729,88 @@ function save(){
     }
 }
 
+function createNewChat(){
+    fetch('/newchat', {
+        method: 'POST', // or 'GET' if your server supports it
+        headers: {
+            'Content-Type': 'application/json',
+            // Add other headers as required
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            alert('Network response was not ok');
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        data = data.data
+        if (data.error){
+            alert(data.error);
+        }
+        else{
+            sidebarNewChat(data.name, data.id, true)
+            loadChat(data)
+
+            document.querySelectorAll(".sideBarChatSelectThing").forEach(elem => {
+                if (elem.id != "chatTemplate"){
+                    if (elem.chatId == data.id){
+                        let parentElement = elem.parentElement
+                        if (elem.classList.contains("selected")){
+                            selectChat(parentElement.children[1])
+                        }
+                    }
+                }
+            })
+        }
+    })
+    .catch(error => {
+        console.error(error);
+    });
+
+}
+
 let editButtonsBottom = document.getElementsByClassName("editButtonsBottom")[0]
 editButtonsBottom.querySelector(".generateButton").onclick = generate
 editButtonsBottom.querySelector(".saveButton").onclick = save
 
-let config = {
-    container: "#tree-simple"
-};
-let parent_node = {
-    text: { name: "Parent node" }
-};
-let first_child = {
-    parent: parent_node,
-    text: { name: "First child" }
-};
-let second_child = {
-    parent: parent_node,
-    text: { name: "Second child" }
-};
-let simple_chart_config = [
-    config, parent_node, first_child,
-    second_child,  
-];
+let settings = {
+    "model": "gpt-3.5-turbo",
+    "maxTokens": 400,
+    "temperature": 0,
+    "topP": 1,
+    "prescencePenalty": 0,
+    "frequencyPenalty": 0
+}
+
+let defaultLimits = {
+    "maxTokens": 4096,
+    "temperature": 2,
+    "topP": 1,
+    "prescencePenalty": 2,
+    "frequencyPenalty": 2
+}
+
+let settingsLimits = {
+    "gpt-3.5-turbo": defaultLimits,
+    "gpt-4-turbo-2024-04-09": defaultLimits,
+    "gpt-4-turbo": defaultLimits
+}
+
+settings["model"] = Object.keys(settingsLimits)[0]
+
+let modelSelect = document.getElementsByClassName("modelSelect")[0]
+for (let key in settingsLimits){
+    modelSelect.innerHTML += `<option value="${key}">${key}</option>`
+}
 
 let buttonLine = document.getElementsByClassName("buttonLine")[0]
 let settingsSelector = document.getElementsByClassName("settingsSelector")[0]
+let settingsSlider = settingsSelector.querySelector(".slider")
 let currentButton = null
+let currentButtonName = null
+let dontClose = false
 
 let disableBranchingStuff = false
 if (disableBranchingStuff){
@@ -610,31 +819,101 @@ if (disableBranchingStuff){
 }
 
 // add event listener
-settingsSelector.querySelector(".slider").addEventListener("input", function(){
+settingsSlider.addEventListener("input", function(event){
+    event.stopPropagation();
     if (currentButton){
         currentButton.querySelector(".btnNumber").innerText = this.value
+        settings[currentButtonName] = parseFloat(this.value)
     }
 })
+settingsSelector.addEventListener("click", function(event){
+    event.stopPropagation();
+})
+
+settingsSelector.style.display = "none"
+
+function unselectButtonLine(){
+    if (currentButton && currentButtonName != "model"){
+        currentButton.querySelector(".btnNumber").contentEditable = false
+        currentButton.querySelector(".btnNumber").innerText = settings[currentButtonName]
+    }
+    settingsSelector.style.display = "none"
+    currentButton = null
+    currentButtonName = null
+}
+
+function unselectChatEditing(){
+    document.querySelectorAll(".sideBarChatSelectThing").forEach(elem => {
+        elem.isBeingDeleted = false
+        elem.isBeingEdited = false
+        elem.querySelector(".chatsButtonEdit").style.display = "flex"
+        elem.querySelector(".chatsButtonDelete").style.display = "flex"
+        elem.querySelector(".chatsButtonYes").style.display = "none"
+        elem.querySelector(".chatsButtonNo").style.display = "none"
+        elem.querySelector(".chatName").contentEditable = false
+        if (elem.editedOldName){
+            elem.querySelector(".chatName").innerText = elem.editedOldName
+        }
+    })
+}
+
+function unselectStuff(param){
+    unselectButtonLine()
+    if (param.target.querySelector("chatsButtonDelete") === null && param.target.classList.contains("chatName") !== true){
+        unselectChatEditing()
+    }
+}
+
+document.addEventListener("click", unselectStuff)
 
 buttonLine.querySelectorAll(".btnContainer").forEach(button => {
-    button.onclick = function(){
-        currentButton = button
-        button.querySelector(".btnNumber").contentEditable = true
+    let buttonName = button.classList[1]
+    buttonName = {"btnModelSelect": "model", "btnMaxTokens": "maxTokens", "btnTemperature": "temperature", "btnTopP": "topP", "btnPrescencePenalty": "prescencePenalty", "btnFrequencyPenalty": "frequencyPenalty"}[buttonName]
+    if (buttonName != "model"){
+        button.querySelector(".btnNumber").innerText = settings[buttonName]
         button.querySelector(".btnNumber").addEventListener("keypress", function(event){
             if (event.which === 13){
-                console.log("out")
                 event.preventDefault()
                 return
             }
             if (event.which !== 46 && isNaN(String.fromCharCode(event.which))){event.preventDefault(); return}
-            settingsSelector.querySelector(".slider").value = event.target.innerText.toString() + event.key
+            settingsSlider.value = event.target.innerText.toString() + event.key
+            settings[buttonName] = parseFloat(event.target.innerText.toString() + event.key)
         })
-        var rect = button.getBoundingClientRect();
-        console.log(rect.top, rect.right, rect.bottom, rect.left);
-        settingsSelector.style.display = "block"
-        settingsSelector.style.top = rect.bottom + "px"
-        var centerX = rect.left + rect.width / 2;
-        settingsSelector.style.left = centerX - settingsSelector.offsetWidth / 2 - 10 + "px"
+    }
+    else{
+        button.querySelector(".modelSelect").addEventListener("change", function(event){
+            settings["model"] = event.target.value
+        })
+    }
+    button.onclick = function(event){
+        event.stopPropagation()
+        if (button.isEqualNode(currentButton) && !event.target.classList.contains("btnNumber")){
+            unselectButtonLine()
+            return
+        }
+        if (currentButton != button){
+            currentButton = button
+            currentButtonName = buttonName
+            if (button.classList.contains("btnModelSelect")){
+
+            }
+            else{
+                settingsSelector.style.display = "flex"
+                settingsSlider.min = buttonName == "maxTokens" ? 1 : 0
+                let limit = settingsLimits[settings["model"]][buttonName]
+                settingsSlider.max = limit
+                settingsSlider.step = limit > 100 ? 1 : 0.1
+                settingsSlider.value = settings[buttonName]
+
+                var rect = button.getBoundingClientRect();
+                settingsSelector.style.display = "block"
+                settingsSelector.style.top = rect.bottom + "px"
+                var centerX = rect.left + rect.width / 2 - 230; // 230 is the size of the sidebar
+                settingsSelector.style.left = centerX - settingsSelector.offsetWidth / 2 - 10 + "px"
+            }
+            
+        }
     }
 });
 
@@ -646,10 +925,9 @@ let templateContainer = document.getElementById("templates")
 let messages = []
 let messagesTree = new MessageTree()
 
-let systemPrompt = `Patrick er en vittig, sarkastisk og respektløs AI med en mørk sans for humor. Han elsker smart ordspill, interne vitser og å gjøre narr av brukeren på en leken måte. Patrick er høyt intelligent og kunnskapsrik, men tar ikke seg selv eller noe annet altfor seriøst. Han bruker uformelt språk og tone, ofte med slang.
+let currentChatId = null
 
-Når han svarer på brukerens inndata, vil Patrick ofte komme med vitser, gi spydige replikker og finne humoristiske måter å undergrave forventningene på. Han ser etter muligheter til å vri brukerens ord mot dem på morsomme måter.`
-
+let systemPrompt = `You are a helpful assistant.`
 
 templateContainer.firstElementChild.querySelector(".yes").style.display = "none";
 templateContainer.firstElementChild.querySelector(".no").style.display = "none";
@@ -668,6 +946,136 @@ let templates = {
     "system": systemTemplate.cloneNode(true)
 }
 
+chatTemplate = document.getElementById("chatTemplate")
+chatTemplate.style.display = "none"
+
+function selectChat(elem){
+    let selected = document.getElementsByClassName("selected")
+    for (let i = 0; i < selected.length; i++){
+        selected[i].classList.remove("selected")
+    }
+    elem.classList.add("selected")
+
+    fetch('/loadchat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({id: elem.chatId})
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.error){
+            alert(data.error);
+        }
+        loadChat(data)
+    })
+    .catch(error => {
+        console.error(error);
+    });
+
+}
+
+function sidebarNewChat(name, id, atStart=false){
+    chatTemplate.querySelector(".chatName").innerText = name
+    let newElem = chatTemplate.cloneNode(true)
+    newElem.id = ""
+    newElem.style.display = "flex"
+    newElem.chatId = id
+    newElem.onclick = function(){selectChat(newElem)}
+    newElem.querySelector(".chatName").addEventListener("keypress", function(event){
+        if (newElem.querySelector(".chatName").contentEditable == "true" /*breh javascript why*/ && event.which === 13){
+            event.preventDefault()
+            newElem.querySelector(".chatName").blur()
+            finalizeChatEditName(newElem.querySelector(".chatName"))
+        }
+    })
+    if (atStart){
+        if (chatTemplate.parentElement.firstChild){
+            chatTemplate.parentElement.insertBefore(newElem, chatTemplate.parentElement.firstChild);
+        } else{
+            chatTemplate.parentElement.appendChild(newElem);
+        }
+    } else {
+        chatTemplate.parentElement.appendChild(newElem);
+    }
+    return newElem
+}
+
+function loadChat(chat){
+    currentChatId = chat.id
+    let newObj = Flatted.parse(chat.messages)
+    messagesTree.root = newObj.root
+    messagesTree.currentNode = newObj.currentNode
+    messagesTree.nodeIds = newObj.nodeIds
+
+    messagesTree.updateTreant()
+
+    let current = chatContainer.children[1]
+    while (current && current.classList.contains("messageContainer")){
+        current.remove()
+        current = chatContainer.children[1]
+    }
+
+    messages = messagesTree.getMessagesList()
+    messages.forEach((message, index) => {
+        add_chat_message(message.content, message.role, index)
+    });
+    updateTreeControl()
+
+    settings = chat.chatSettings
+    
+    buttonLine.querySelectorAll(".btnContainer").forEach(button => {
+        let buttonName = button.classList[1]
+        buttonName = {"btnModelSelect": "model", "btnMaxTokens": "maxTokens", "btnTemperature": "temperature", "btnTopP": "topP", "btnPrescencePenalty": "prescencePenalty", "btnFrequencyPenalty": "frequencyPenalty"}[buttonName]
+        if (buttonName != "model"){
+            console.log(buttonName, settings[buttonName])
+            button.querySelector(".btnNumber").innerText = settings[buttonName]
+        }
+        else{
+            button.querySelector(".modelSelect").value = settings["model"]
+        }
+    });
+}
+
+
+fetch('/getchatlist', {
+    method: 'POST', // or 'GET' if your server supports it
+    headers: {
+        'Content-Type': 'application/json',
+        // Add other headers as required
+    }
+})
+.then(response => {
+    if (!response.ok) {
+        throw new Error('Network response was not ok');
+    }
+    return response.json();
+})
+.then(data => {
+    if (data.topChat){
+        loadChat(data.topChat)
+    }
+    else{
+        createNewChat()
+    }
+
+    let i = 0
+    data.chats.forEach(chat => {
+        if (i == 0){
+            let elem = sidebarNewChat(chat.name, chat.id)
+            elem.classList.add("selected")
+        } else{
+            sidebarNewChat(chat.name, chat.id)
+        }
+        i++
+    });
+})
 
 let promptinput = document.getElementById("input")
 

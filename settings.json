@@ -1,0 +1,11 @@
+{
+    "defaultChatSettings": {
+        "model": "gpt-3.5-turbo",
+        "maxTokens": 400,
+        "temperature": 0,
+        "topP": 1,
+        "prescencePenalty": 0,
+        "frequencyPenalty": 0,
+        "systemPrompt": "You are Jesus Christ"
+    }
+}

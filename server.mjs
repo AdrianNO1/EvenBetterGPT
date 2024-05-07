@@ -7,6 +7,8 @@ import { promises as fs } from 'fs';
 import { type } from 'os';
 import { parse, stringify } from 'flatted';
 import { all } from 'axios';
+import tiktoken from 'tiktoken';
+import { get } from 'http';
 
 let dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -20,7 +22,15 @@ const port = 3000;
 // Middleware to parse JSON bodies
 app.use(bodyParser.json());
 
-app.use(express.static(path.join(dirname, 'public')));
+app.use(bodyParser.urlencoded({
+    parameterLimit: 100000,
+    limit: '50mb',
+    extended: true
+}));
+
+const publicPath = path.join(dirname, 'public')
+
+app.use(express.static(publicPath));
 
 async function getAllChats(){
     let files = await fs.readdir(chatsPath)
@@ -44,9 +54,8 @@ async function createNewChat(name){
     data.createdAt = new Date().toISOString()
     data.id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
     
-    data.messages = `[{"root":"1","currentNode":"2","nodeIds":"3"},{"message":null,"id":"4","parent":null,"children":"5","previouslySelectedChild":"2","isRoot":true},{"message":"6","id":"7","parent":"1","children":"8","previouslySelectedChild":null},{"1714480505986f331d8a3b7dce":"2"},"root",["2"],{"role":"9","content":"10"},"1714480505986f331d8a3b7dce",[],"system","${data.chatSettings.systemPrompt}"]`
-    
-    //data.chatSettings.systemPrompt ? [{"role": "system", "content": data.chatSettings.systemPrompt}] : []
+    data.messages = `[{"root":"1","currentNode":"2","nodeIds":"3"},{"message":null,"id":"4","parent":null,"children":"5","previouslySelectedChild":"2","isRoot":true,"tokens":0},{"message":"6","id":"7","parent":"1","children":"8","previouslySelectedChild":null,"tokens":12},{"1714729139792bee7975b68117":"2"},"root",["2"],{"role":"9","content":"10"},"1714729139792bee7975b68117",[],"system","${data.chatSettings.systemPrompt}"]`
+    delete data.chatSettings.systemPrompt;
     
     if (name){
         data.name = name
@@ -57,7 +66,6 @@ async function createNewChat(name){
             const match = chat.name.match(regex);
             return match ? parseInt(match[1] ? match[1] : 1) : null;
         }).filter(chatNumber => chatNumber !== null);
-        console.log(chatNumbers)
         const maxChatNumber = chatNumbers.length > 0 ? Math.max(...chatNumbers) : 0;
         const newChatNumber = maxChatNumber + 1;
         data.name = newChatNumber === 1 ? "New Chat" : `New Chat ${newChatNumber}`;
@@ -79,8 +87,6 @@ await new Promise(resolve => setTimeout(resolve, 1000))
 
 const allChats = await getAllChats()
 
-console.log(allChats)
-
 function writeToFile(filePath, jsonData){
     fs.writeFile(filePath, jsonData, (err) => {
         if (err) {
@@ -88,6 +94,80 @@ function writeToFile(filePath, jsonData){
         }
     });
 }
+
+app.get('/videos', (req, res) => {
+    res.sendFile(path.join(publicPath, 'videos.html'));
+})
+
+app.get('/feedback', (req, res) => {
+    res.sendFile(path.join(publicPath, 'feedback.html'));
+})
+
+function numTokensFromMessage(message, model = "gpt-3.5-turbo-0301") {
+    let encoding;
+    try {
+        encoding = tiktoken.encoding_for_model(model);
+    } catch (error) {
+        encoding = tiktoken.get_encoding("cl100k_base");
+    }
+
+    if (model === "gpt-3.5-turbo-0301") { // should be accurate enough for most things
+        let numTokens = 0;
+        //messages.forEach(message => {
+        numTokens += 4; // every message follows <im_start>{role/name}\n{content}<im_end>\n
+        for (const [key, value] of Object.entries(message)) {
+            numTokens += encoding.encode(value).length;
+            if (key === "name") { // if there's a name, the role is omitted
+                numTokens -= 1; // role is always required and always 1 token
+            }
+        }
+        //});
+        numTokens += 2; // every reply is primed with <im_start>assistant
+        return numTokens;
+    } else {
+        throw new Error(`numTokensFromMessage() is not presently implemented for model ${model}.`);
+    }
+}
+
+app.post('/gettokencost', async (req, res) => {
+    try {
+        const message = JSON.parse(req.body.message);
+        const model = req.body.model;
+        if (message === null || message === undefined || typeof model !== 'string') {
+            throw new Error('Invalid input');
+        }
+
+        return res.json({ count: numTokensFromMessage(message) });
+    } catch (error) {
+        console.log(error)
+        return res.status(400).json({ error: error.message });
+    }
+})
+
+app.post("/feedbacksubmit", async (req, res) => {
+    const datetime = new Date().toISOString();
+    const filename = `feedback\\${datetime.replace(/:/g, '-')}.json`;
+    const filepath = path.join(dirname, filename);
+    writeToFile(filepath, JSON.stringify(req.body, null, 4));
+    res.json()
+})
+
+app.post("/search", async (req, res) => {
+    const query = req.body.query;
+    let matches = [];
+    for (let i = 0; i < allChats.length; i++) {
+        Object.values(parse(allChats[i].messages).nodeIds).forEach(node => {
+            if (node.message.content.toLowerCase().includes(query.toLowerCase())) {
+                matches.push(allChats[i].id);
+            }
+        })
+        if (query === "" || allChats[i].name.toLowerCase().includes(query.toLowerCase())) {
+            matches.push(allChats[i].id);
+        }
+    }
+    matches = [...new Set(matches)];
+    res.json({ matches });
+})
 
 app.post('/deletechat', async (req, res) => {
     const chatId = req.body.id;
@@ -137,11 +217,21 @@ app.post('/getchatlist', async (req, res) => {
         })
     };
     data.topChat = allChats[0]
+    data.defaultSettings = JSON.parse(await fs.readFile(path.join(dirname, "settings.json"), 'utf8')).defaultChatSettings
     res.json(data);
+})
+
+app.post('/savedefaultsettings', async (req, res) => {
+    const settings = req.body.settings;
+    let oldSettings = JSON.parse(await fs.readFile(path.join(dirname, "settings.json"), 'utf8'))
+    oldSettings.defaultChatSettings = settings
+    writeToFile(path.join(dirname, "settings.json"), JSON.stringify(oldSettings, null, 4));
+    res.json({ success: true });
 })
 
 app.post('/savechat', async (req, res) => {
     const messages = req.body.messages;
+    const settings = JSON.parse(req.body.settings);
     const chatId = req.body.id;
 
     let foundChat = null;
@@ -151,10 +241,40 @@ app.post('/savechat', async (req, res) => {
             break;
         }
     }
-    console.log(foundChat)
-    console.log(messages)
+    
     if (foundChat) {
-        foundChat.messages = messages
+        let parsedMessages = parse(messages)
+
+        for (const value of Object.values(parsedMessages.nodeIds)) {
+            if (value.tokens === NaN || value.tokens === undefined || value.tokens === null){
+                value.tokens = numTokensFromMessage(value.message)
+                console.log("set tokens to", value.tokens, " for ", value.message)
+            }
+        }
+
+        foundChat.messages = stringify(parsedMessages)
+        foundChat.chatSettings = settings
+        writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(foundChat, null, 4));
+        res.json({ success: true });
+    } else {
+        res.json({ error: "Chat not found" });
+    }
+})
+
+app.post('/savesettings', async (req, res) => {
+    const settings = JSON.parse(req.body.settings);
+    const chatId = req.body.id;
+
+    let foundChat = null;
+    for (let i = 0; i < allChats.length; i++) {
+        if (allChats[i].id == chatId) {
+            foundChat = allChats[i];
+            break;
+        }
+    }
+    
+    if (foundChat) {
+        foundChat.chatSettings = settings
         writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(foundChat, null, 4));
         res.json({ success: true });
     } else {
@@ -173,11 +293,6 @@ app.post('/loadchat', async (req, res) => {
     }
 
     if (foundChat) {
-        if (typeof foundChat.messages === 'string') {
-            let obj = parse(foundChat.messages);
-            console.log(obj)
-            console.log(obj.currentNode)
-        }
         res.json(foundChat);
     } else {
         res.json({ error: "Chat not found" });
@@ -186,24 +301,25 @@ app.post('/loadchat', async (req, res) => {
 
 app.post('/newchat', async (req, res) => {
     const data = await createNewChat()
-    console.log(data)
     res.json({data})
 })
 
 app.post('/submit', async (req, res) => {
     console.log('Received:', req.body);
     const chatId = req.body.chatId;
+    const settings = req.body.settings;
     let messagesTree = req.body.messagesTree;
 
     try {
+        const startTime = new Date().getTime();
         const completion = await openai.chat.completions.create({
             messages: req.body.messages,
-            model: req.body.model,
-            max_tokens: req.body.maxTokens,
-            temperature: req.body.temperature,
-            top_p: req.body.topP,
-            frequency_penalty: req.body.frequencyPenalty,
-            presence_penalty: req.body.prescencePenalty,
+            model: settings.model,
+            max_tokens: settings.maxTokens,
+            temperature: settings.temperature,
+            top_p: settings.topP,
+            frequency_penalty: settings.frequencyPenalty,
+            presence_penalty: settings.prescencePenalty,
             stream: true,
         });
         
@@ -226,37 +342,49 @@ app.post('/submit', async (req, res) => {
 
         const fileData = JSON.parse(await fs.readFile(path.join(chatsPath, chatId + ".json"), 'utf8'));
         fileData.messages = messagesTree;
+        fileData.chatSettings = settings;
         allChats[currentChatIndex].messages = fileData.messages;
 
         writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
         messagesTree = parse(messagesTree);
 
-
+        messagesTree.currentNode.parent.tokens = numTokensFromMessage(messagesTree.currentNode.parent.message);
+    
+        console.log("generating...")
         let i = 0
         for await (const chunk of completion) {
             if (chunk.choices[0].delta.content) {
                 messagesTree.currentNode.message.content += chunk.choices[0].delta.content;
-                if (i % 5 == 0){
+                if (i % 4 == 0){
                     fileData.messages = stringify(messagesTree);
                     allChats[currentChatIndex].messages = fileData.messages;
                     writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
                 }
-                res.write(chunk.choices[0].delta.content);
+                    
+                res.write(JSON.stringify({"chunk": chunk.choices[0].delta.content}) + "<|endoftext|>");
                 i += 1
             }
         }
+
+        let tokens = numTokensFromMessage(messagesTree.currentNode.message);
+        messagesTree.currentNode.tokens = tokens;
+        res.write(JSON.stringify({"totalTokens": tokens}) + "<|endoftext|>")
+
         setTimeout(function() {
             fileData.messages = stringify(messagesTree);
             allChats[currentChatIndex].messages = fileData.messages;
             writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
+            console.log("finished writing")
         }, 200);
+
+        console.log("finished in ", new Date().getTime() - startTime, "ms")
 
         res.end();
 
     } catch (error) {
         console.error('Error:', error);
         if (!res.headersSent) {
-            res.status(500).json({ error: 'Error processing your request' });
+            res.status(400).json({ error: error.error.message });
         }
     }
 });

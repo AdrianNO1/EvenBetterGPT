@@ -1,3 +1,9 @@
 /node_modules/
 /chats/*
+/feedback/*
 test.py
+/public/videos
+/public/patricklogo.png
+/public/feedback.html
+/public/videos.html
+/public/vidsfeedback.css

@@ -140,6 +140,10 @@ body{
     height: 40px;
 }
 
+.stopGenerating{
+    background-color: rgb(233, 233, 233);
+}
+
 .generateButton{
     background-color: rgb(48, 204, 165);
 }
@@ -159,6 +163,7 @@ body{
     background-color: rgb(220, 220, 220);
     font-weight: bold;
     text-align: left;
+    border: 1px solid rgb(45, 45, 45);
 }
 
 .userSelect:hover {
@@ -245,6 +250,12 @@ body{
     padding: 5px;
     top: 0;
     left: 0;
+
+    user-select: none;
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -o-user-select: none;
 }
 
 .slider {
@@ -293,6 +304,8 @@ body{
     align-items: center;
     justify-content: center;
     display: none;
+    padding: 15px;
+    border-radius: 10px;
 }
 
 .closeError{
@@ -438,9 +451,8 @@ body{
     display: none;
 }
 
-.newChatButton, .searchBar, .settings{
+.newChatButton, .searchBar, .opensettings, .feedback, .videos{
     background-color: transparent;
-    border: none;
     outline: none;
     text-align: center;
     justify-content: left;
@@ -451,17 +463,29 @@ body{
     height: 45px;
 }
 
-.settings{
+.opensettings, .feedback, .videos{
     width: 100%;
     border-radius: 0;
     margin: 0;
+    border: none;
     border-top: 2px solid rgb(51, 51, 51);
     cursor: pointer;
 }
 
-.settings svg{
+.opensettings svg, .feedback svg, .videos svg{
     width: 16px;
     margin-right: 10px;
+}
+
+.feedback svg{
+    width: 20px;
+    margin-right: 8px;
+    margin-left: -2px;
+}
+
+.videos svg{
+    width: 20px;
+    margin-right: 6px;
 }
 
 .newChatButton{
@@ -503,6 +527,10 @@ body{
     width: 100%;
 }
 
+.tokensCost p{
+    margin: 0;
+}
+
 ::-webkit-scrollbar {
     width: 10px;
 }
@@ -518,3 +546,120 @@ body{
 ::-webkit-scrollbar-thumb:hover {
     background: #747474; 
 }
+
+.nofound{
+    display: none;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.settings {
+    display: none;
+    position: absolute;
+    z-index: 5;
+    width: 80%;
+    background-color: #f4f4f4;
+    padding: 20px;
+    box-sizing: border-box;
+    border-radius: 20px;
+    left: 50%;
+    transform: translate(-50%, 0);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+
+}
+
+.settingsContent {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.settingsHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.settingsHeader h1 {
+    font-size: 24px;
+}
+
+.settingsContainer {
+    margin-top: 15px;
+}
+
+.settingsGroup {
+    margin-bottom: 18px;
+}
+
+.settingsGroup p {
+    font-size: 18px;
+}
+
+.settingsGroup select, .settingsGroup input {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+}
+
+.settingsButtons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.settingsButton {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.saveSettings {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.cancelSettings {
+    background-color: #f44336;
+    color: white;
+}
+
+.defaultSystemPrompt{
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    resize: none;
+}
+
+
+
+pre code.hljs{display:block;overflow-x:auto;padding:1em}code.hljs{padding:3px 5px}.hljs{background:#f3f3f3;color:#444}.hljs-comment{color:#697070}.hljs-punctuation,.hljs-tag{color:#444a}.hljs-tag .hljs-attr,.hljs-tag .hljs-name{color:#444}.hljs-attribute,.hljs-doctag,.hljs-keyword,.hljs-meta .hljs-keyword,.hljs-name,.hljs-selector-tag{font-weight:700}.hljs-deletion,.hljs-number,.hljs-quote,.hljs-selector-class,.hljs-selector-id,.hljs-string,.hljs-template-tag,.hljs-type{color:#800}.hljs-section,.hljs-title{color:#800;font-weight:700}.hljs-link,.hljs-operator,.hljs-regexp,.hljs-selector-attr,.hljs-selector-pseudo,.hljs-symbol,.hljs-template-variable,.hljs-variable{color:#ab5656}.hljs-literal{color:#695}.hljs-addition,.hljs-built_in,.hljs-bullet,.hljs-code{color:#397300}.hljs-meta{color:#1f7199}.hljs-meta .hljs-string{color:#38a}.hljs-emphasis{font-style:italic}.hljs-strong{font-weight:700}

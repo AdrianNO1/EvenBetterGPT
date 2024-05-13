@@ -1,13 +1,18 @@
 function handleEnterSubmit(event) {
-    console.log(promptImages)
     if (!isGenerating){
         if (event.which === 13 && !event.shiftKey) {
             event.preventDefault();
             let prompt = event.target.value
             event.target.value = ""
-            add_chat_message(prompt, "user", messages.length);
+            add_chat_message(prompt, "user", promptImages);
 
-            let newNode = messagesTree.addMessage({"role": "user", "content": prompt})
+            let newNode = messagesTree.addMessage({"role": "user", "content": prompt}, promptImages)
+            
+            promptImages = []
+            promptinput.parentElement.querySelectorAll(".imageContainer").forEach(img => {
+                img.remove()
+            })
+
             getTokenCost(newNode).then(tokenCost => {
                 newNode.tokens = tokenCost
             }).catch(error => {
@@ -15,7 +20,7 @@ function handleEnterSubmit(event) {
                 console.log("error from hehere")
             });
 
-            runApiCall(messages, add_chat_message("", "assistant", messages.length))
+            runApiCall(messages, add_chat_message("", "assistant"))
         }
     }
 }
@@ -34,8 +39,40 @@ let md = window.markdownit({
     }
 });
 
-function messageToHTML(content){ // TODO: this is a mess
-    return md.render(content)
+function copyCode(button){
+    navigator.clipboard.writeText(button.parentElement.parentElement.nextElementSibling.innerText)
+    setTimeout(() => {
+        button.querySelector("p").innerText = "Copy code"
+        button.querySelector(".copyButtonIcon").style.display = "block"
+        button.querySelector(".copyButtonOk").style.display = "none"
+    }, 2000);
+    button.querySelector("p").innerText = "Copied!"
+    button.querySelector(".copyButtonIcon").style.display = "none"
+    button.querySelector(".copyButtonOk").style.display = "block"
+}
+
+function messageToHTML(content){
+    let temp = document.createElement("div")
+    temp.innerHTML = md.render(content)
+
+    temp.querySelectorAll("code").forEach(code => {
+        if (code.parentElement.classList.contains("hljs")){
+            let newElem = document.createElement("div")
+            newElem.innerHTML = `
+            <div class="codeCopyBlock">
+                <p>python</p>
+                <button class="copyButton" onclick="copyCode(this)">
+                    <svg class="copyButtonIcon" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                    <svg class="copyButtonOk" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <p>Copy code</p>
+                </button>
+            </div>`
+            code.parentElement.parentElement.insertBefore(newElem, code.parentElement)
+            code.parentElement.classList.add("codeBlock")
+        }
+    })
+    
+    return temp.innerHTML
 
     return `<p>${content.replace("\n", "<br><br>")}</p>`
     total = ""
@@ -62,11 +99,11 @@ function utilityBack(button){
         node = node.parent.children[childIndex - 1]
         let index = childIndex
         while (node.children.length > 0){
-            add_chat_message(node.message.content, node.message.role, index)
+            add_chat_message(node.message.content, node.message.role, node.images)
             node = node.previouslySelectedChild
             index += 1
         }
-        add_chat_message(node.message.content, node.message.role, index)
+        add_chat_message(node.message.content, node.message.role, node.images)
         messagesTree.currentNode = node
 
         messagesTree.updateTreant()
@@ -92,10 +129,10 @@ function utilityForward(button){
         node = node.parent.children[childIndex + 1]
         let index = childIndex + 1
         while (node.children.length > 0){
-            add_chat_message(node.message.content, node.message.role, index)
+            add_chat_message(node.message.content, node.message.role, node.images)
             node = node.previouslySelectedChild
         }
-        add_chat_message(node.message.content, node.message.role, index)
+        add_chat_message(node.message.content, node.message.role, node.images)
         messagesTree.currentNode = node
 
         messagesTree.updateTreant()
@@ -147,6 +184,9 @@ function utilityCopy(button){
     let obj = button.parentElement.parentElement.parentElement
     
     let text = messages[obj.messageIndex].content
+    if (typeof text != "string"){
+        text = text[0].text
+    }
     navigator.clipboard.writeText(text)
 
     
@@ -188,7 +228,12 @@ function utilityDelete(button){
         updateTokenCosts()
         updateTreeControl()
         messages.splice(obj.messageIndex + 1, messages.length - obj.messageIndex - 1)
-        messages[obj.messageIndex].content = obj.querySelector(".message").innerText
+        if (typeof messages[obj.messageIndex].content != "string"){
+            messages[obj.messageIndex].content[0].text = obj.querySelector(".message").innerText
+        }
+        else{
+            messages[obj.messageIndex].content = obj.querySelector(".message").innerText
+        }
 
         let nextSibling = obj
         while (nextSibling && nextSibling.classList.contains("messageContainer")){
@@ -219,7 +264,17 @@ function utilityEdit(button){
     obj.querySelector(".editButtons").style.display = "flex"
     
     let oldText = obj.querySelector(".message").innerHTML
-
+    let imagesHTML = ""
+    obj.querySelectorAll(".message .imageContainer").forEach(img => {
+        imagesHTML += img.outerHTML
+    })
+    if (typeof messages[obj.messageIndex].content != "string"){
+        obj.querySelector(".message").innerHTML = "<pre>" + messages[obj.messageIndex].content[0].text + "</pre>" + imagesHTML
+    }
+    else{
+        obj.querySelector(".message").innerHTML = "<pre>" + messages[obj.messageIndex].content + "</pre>" + imagesHTML
+    }
+    
     obj.querySelector(".message").contentEditable = true
 
     function generate(){
@@ -229,14 +284,19 @@ function utilityEdit(button){
         obj.querySelector(".message").contentEditable = false
         obj.querySelector(".editButtons").style.display = "none"
         obj.querySelector(".utilityButtonContainer").style.display = "flex"
-        obj.querySelector(".message").innerHTML = messageToHTML(obj.querySelector(".message").innerText)
-
+        
         messagesTree.branchOut(messagesTree.getNodeFromIndex(obj.messageIndex))
         messagesTree.hardDeleteToNode(messagesTree.getNodeFromIndex(obj.messageIndex))
         messagesTree.updateTreant()
         updateTokenCosts()
         messages.splice(obj.messageIndex + 1, messages.length - obj.messageIndex - 1)
-        messages[obj.messageIndex].content = obj.querySelector(".message").innerText
+        if (typeof messages[obj.messageIndex].content != "string"){
+            messages[obj.messageIndex].content[0].text = obj.querySelector(".message").innerText
+        }
+        else{
+            messages[obj.messageIndex].content = obj.querySelector(".message").innerText
+        }
+        obj.querySelector(".message").innerHTML = messageToHTML(obj.querySelector(".message").innerText) + imagesHTML
 
         let newNode = messagesTree.getNodeFromIndex(obj.messageIndex)
         getTokenCost(newNode).then(tokenCost => {
@@ -251,34 +311,30 @@ function utilityEdit(button){
             nextSibling = nextSibling.nextElementSibling
             nextSibling.previousElementSibling.remove()
         }
-        runApiCall(messages, add_chat_message("", "assistant", messages.length))
+        runApiCall(messages, add_chat_message("", "assistant"))
     }
 
     function save(){
-        console.log(messages)
-        console.log(messages[0], messages[1], messages[2])
-
-        console.log("Before save");
         obj.querySelector(".message").contentEditable = false;
-        console.log("After contentEditable", obj.querySelector(".message").contentEditable);
         obj.querySelector(".editButtons").style.display = "none";
-        console.log("After editButtons display", obj.querySelector(".editButtons").style.display);
         obj.querySelector(".utilityButtonContainer").style.display = "flex";
-        console.log("After utilityButtonContainer display", obj.querySelector(".utilityButtonContainer").style.display);
-        obj.querySelector(".message").innerHTML = messageToHTML(obj.querySelector(".message").innerText);
-        console.log("After innerHTML", obj.querySelector(".message").innerHTML);
+        
         messagesTree.branchOut(messagesTree.getNodeFromIndex(obj.messageIndex), false);
-        console.log("After branchOut", messagesTree.getNodeFromIndex(obj.messageIndex));
-        console.log("Previous value: ", messages[obj.messageIndex].content)
-        console.log(messages[0], messages[1], messages[2])
-        messages[obj.messageIndex].content = obj.querySelector(".message").innerText;
-        console.log("set content of message index ", obj.messageIndex, " to ", obj.querySelector(".message").innerText);
+        messages = messagesTree.getMessagesList();
+        if (typeof messages[obj.messageIndex].content != "string"){
+            console.log(obj.querySelector(".message").innerText)
+            messages[obj.messageIndex].content[0].text = obj.querySelector(".message").innerText;
+        }
+        else{
+            console.log(obj.querySelector(".message").innerText)
+            messages[obj.messageIndex].content = obj.querySelector(".message").innerText;
+        }
+        obj.querySelector(".message").innerHTML = messageToHTML(obj.querySelector(".message").innerText) + imagesHTML;
 
         let newNode = messagesTree.getNodeFromIndex(obj.messageIndex);
-        console.log("After getNodeFromIndex", messagesTree.getNodeFromIndex(obj.messageIndex));
+
         getTokenCost(newNode).then(tokenCost => {
             newNode.tokens = tokenCost;
-            console.log("Inside getTokenCost then", newNode.tokens);
         }).catch(error => {
             alert("btw newNode.tokens is now NaN. Failed to get token cost:", error);
             console.log("error from hehere");
@@ -286,11 +342,8 @@ function utilityEdit(button){
         
         messagesTree.updateTreant();
         updateTreeControl()
-        console.log("After updateTreant");
         updateTokenCosts();
-        console.log("After updateTokenCosts");
         saveChat();
-        console.log("After saveChat");
     }
 
     function cancel(){
@@ -341,14 +394,38 @@ function updateTreeControl(){
     });
 }
 
-function add_chat_message(content, user, index){
-    let actualIndex = 0
+function createNewImageElement(backgroundImage){
+    let newElem = document.createElement("div")
+    newElem.classList.add("imageContainer")
+
+    newElem.style.backgroundImage = `url(${backgroundImage})`
+
+    let deleteButton = document.createElement("button")
+    deleteButton.classList.add("imageContainerDeleteButton")
+    deleteButton.innerHTML = `<svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`
+    deleteButton.onclick = function(){
+        let indexToRemove = [...newElem.parentElement.querySelectorAll(".imageContainer")].indexOf(newElem)
+        if (newElem.parentElement.classList.contains("inputArea")){
+            promptImages.splice(indexToRemove, 1)
+        }
+        else{
+            let node = messagesTree.getNodeFromIndex(newElem.parentElement.parentElement.messageIndex)
+            messagesTree.branchOut(node)
+            node = messagesTree.getNodeFromIndex(newElem.parentElement.parentElement.messageIndex)
+        }
+        newElem.remove()
+    }
+    newElem.appendChild(deleteButton)
+    return newElem
+}
+
+function add_chat_message(content, user, images){
+    let index = 0
     let current = chatContainer.children[1]
     while (current && current.classList.contains("messageContainer")){
-        actualIndex += 1
+        index += 1
         current = current.nextElementSibling
     }
-    index = actualIndex
     let htmlObject = templates[user].cloneNode(true)
     htmlObject.querySelector(".message").innerHTML = messageToHTML(content)
     htmlObject.messageIndex = index
@@ -366,7 +443,14 @@ function add_chat_message(content, user, index){
         updateTokenCosts()
     }
 
-    chatContainer.insertBefore(htmlObject, input)
+    if (images){
+        images.forEach(image => {
+            let img = createNewImageElement(image)
+            htmlObject.querySelector(".message").appendChild(img)
+        });
+    }
+
+    chatContainer.insertBefore(htmlObject, input.parentElement)
     updateArrows(htmlObject)
 
     //htmlObject.onmouseover = function(){
@@ -436,8 +520,12 @@ function runApiCall(messages, element){
                                 }
                             });
                             newStuff = JSON.parse(splitted[splitted.length-1])
-    
-                            messages[messages.length-1].content = totalText
+                            if (typeof messages[messages.length-1].content != "string"){
+                                messages[messages.length-1].content[0].text = totalText
+                            }
+                            else{
+                                messages[messages.length-1].content = totalText
+                            }
                             if ("totalTokens" in newStuff){
                                 msg_obj.tokens = newStuff["totalTokens"]
                             }
@@ -497,12 +585,18 @@ class MessageTree {
         // update the string in server after adding new properties
     }
 
-    addMessage(message) {
-        messages.push(message)
+    addMessage(message, images) {
         let id = generateId()
         
         const newNode = new MessageNode(message, id);
         newNode.tokens = NaN
+        if (images && images.length > 0){
+            newNode.images = images
+            messages.push({role: message.role, content: [{"type": "text", "text": message.content}, ...images.map(image => {return {"type": "image_url", "image_url": {"url": image}}})]})
+        }
+        else{
+            messages.push(message)
+        }
         
         this.nodeIds[id] = newNode
         //if (!this.root) {
@@ -530,7 +624,9 @@ class MessageTree {
         function recursivlyCopy(node, main, newParent){
             let id = generateId()
             let newNode = new MessageNode(JSON.parse(JSON.stringify(node.message)), id, false, node.tokens)
-            
+            if (node.images){
+                newNode.images = JSON.parse(JSON.stringify(node.images))
+            }
             main.nodeIds[id] = newNode
             newNode.parent = newParent ?? node.parent;
             let oldCurrentNode = main.currentNode
@@ -623,7 +719,11 @@ class MessageTree {
         let node = this.currentNode
         while (node != this.root) {
             if (node.message){
-                messages.push(node.message);
+                if (node.images){
+                    messages.push({role: node.message.role, content: [{"type": "text", "text": node.message.content}, ...node.images.map(image => {return {"type": "image_url", "image_url": {"url": image}}})]})
+                } else{
+                    messages.push(node.message);
+                }
             }
             node = node.parent;
         }
@@ -731,12 +831,16 @@ function generateNewTemplateString(){
 }
 
 async function getTokenCost(node){
+    let message = node.message
+    if (node.images){
+        message = {role: node.message.role, content: [{"type": "text", "text": node.message.content}, ...node.images.map(image => {return {"type": "image_url", "image_url": {"url": image}}})]}
+    }
     return fetch('/gettokencost', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({message: JSON.stringify(node.message), model: settings["model"]}),
+        body: JSON.stringify({message: JSON.stringify(message), model: settings["model"]}),
     })
     .then(response => {
         if (!response.ok) {
@@ -925,19 +1029,26 @@ function generate(){
 }
 
 function save(dontFetch=false){
-    if (promptinput.value){
-        add_chat_message(promptinput.value, "user");
-        let newNode = messagesTree.addMessage({"role": "user", "content": promptinput.value})
+    if (promptinput.value || promptImages.length > 0){
+        add_chat_message(promptinput.value, "user", promptImages);
+        let newNode = messagesTree.addMessage({"role": "user", "content": promptinput.value}, promptImages)
+
+        promptinput.value = ""
+        promptImages = []
+        promptinput.parentElement.querySelectorAll(".imageContainer").forEach(img => {
+            img.remove()
+        })
+
         getTokenCost(newNode).then(tokenCost => {
             newNode.tokens = tokenCost
         }).catch(error => {
             alert("btw newNode.tokens is now NaN. Failed to get token cost:", error);
             console.log("error from hehere")
         });
-        promptinput.value = ""
         if (!dontFetch){
             saveChat()
         }
+        window.scrollTo(0, document.body.scrollHeight-500);
     }
 }
 
@@ -977,6 +1088,7 @@ function createNewChat(){
                     }
                 }
             })
+            stopListening()
         }
     })
     .catch(error => {
@@ -1111,11 +1223,17 @@ let currentButton = null
 let currentButtonName = null
 let dontClose = false
 
-let disableBranchingStuff = false
-if (disableBranchingStuff){
-    document.getElementById("tree-simple").style.display = "none"
-    buttonLine.style.display = "none"
+function showTree(){
+    document.getElementById("tree-simple").style.display = "block"
 }
+
+function hideTree(){
+    document.getElementById("tree-simple").style.display = "none"
+}
+
+let disableBranchingStuff = false
+
+
 
 // add event listener
 settingsSlider.addEventListener("input", function(event){
@@ -1334,7 +1452,12 @@ function loadChat(chat){
 
     messages = messagesTree.getMessagesList()
     messages.forEach((message, index) => {
-        add_chat_message(message.content, message.role, index)
+        if (typeof message.content != "string"){
+            add_chat_message(message.content[0].text, message.role, message.content.slice(1).map(image => image.image_url.url))
+        }
+        else{
+            add_chat_message(message.content, message.role)
+        }
     });
     updateTreeControl()
     updateTokenCosts()
@@ -1441,24 +1564,20 @@ promptinput.onpaste = function(event){
             var blob = item.getAsFile();
             var reader = new FileReader();
             reader.onload = function (event) {
-                console.log(event.target.result);
                 promptImages.push(event.target.result)
+                let newElem = createNewImageElement(event.target.result)
+
+                promptinput.parentElement.appendChild(newElem)
             }; 
             reader.readAsDataURL(blob);
         }
     }
 }
 
-add_chat_message(systemPrompt, "system", 0)
+add_chat_message(systemPrompt, "system")
 
 let newNode = messagesTree.addMessage({"role": "system", "content": systemPrompt})
-
-getTokenCost(newNode).then(tokenCost => {
-    newNode.tokens = tokenCost
-}).catch(error => {
-    alert("btw newNode.tokens is now NaN. Failed to get token cost:", error);
-    console.log("error from hehere")
-});
+newNode.tokens = 0
 
 window.onbeforeunload = function(){
     saveSettings()

@@ -9,6 +9,7 @@ import { parse, stringify } from 'flatted';
 import { all } from 'axios';
 import tiktoken from 'tiktoken';
 import { get } from 'http';
+import Canvas from 'canvas';
 
 let dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -20,13 +21,7 @@ const app = express();
 const port = 3000;
 
 // Middleware to parse JSON bodies
-app.use(bodyParser.json());
-
-app.use(bodyParser.urlencoded({
-    parameterLimit: 100000,
-    limit: '50mb',
-    extended: true
-}));
+app.use(bodyParser.json({limit: '500mb'}));
 
 const publicPath = path.join(dirname, 'public')
 
@@ -103,6 +98,43 @@ app.get('/feedback', (req, res) => {
     res.sendFile(path.join(publicPath, 'feedback.html'));
 })
 
+function calculateImageTokenCost(width, height, detail) {
+    const lowDetailCost = 85;
+    const highDetailCostPerTile = 170;
+    const additionalHighDetailCost = 85;
+
+    if (detail === 'low') {
+        return lowDetailCost;
+    } else if (detail === 'high') {
+        // Step 1: Scale the image to fit within a 2048 x 2048 square
+        let scale = Math.min(2048 / width, 2048 / height);
+        let scaledWidth = width * scale;
+        let scaledHeight = height * scale;
+
+        // Step 2: Scale such that the shortest side is 768px
+        scale = 768 / Math.min(scaledWidth, scaledHeight);
+        scaledWidth = scaledWidth * scale;
+        scaledHeight = scaledHeight * scale;
+
+        // Step 3: Calculate the number of 512px squares needed
+        const numTilesWidth = Math.ceil(scaledWidth / 512);
+        const numTilesHeight = Math.ceil(scaledHeight / 512);
+        const totalTiles = numTilesWidth * numTilesHeight;
+
+        // Step 4: Calculate the total cost
+        const totalCost = highDetailCostPerTile * totalTiles + additionalHighDetailCost;
+        return totalCost;
+    } else {
+        throw new Error('Invalid detail level. Please choose "low" or "high".');
+    }
+}
+
+function getImageDimensions(base64) {
+    const img = new Canvas.Image();
+    img.src = base64;
+    return { width: img.width, height: img.height };
+}
+
 function numTokensFromMessage(message, model = "gpt-3.5-turbo-0301") {
     let encoding;
     try {
@@ -116,7 +148,20 @@ function numTokensFromMessage(message, model = "gpt-3.5-turbo-0301") {
         //messages.forEach(message => {
         numTokens += 4; // every message follows <im_start>{role/name}\n{content}<im_end>\n
         for (const [key, value] of Object.entries(message)) {
-            numTokens += encoding.encode(value).length;
+            if (typeof value !== 'string') {
+                numTokens += encoding.encode(value[0].text).length;
+                value.slice(1).forEach(item => {
+                    console.log("AA", item)
+                    let base64 = item.image_url.url;
+                    // get the image dimensions from the base64 string
+                    let { width, height } = getImageDimensions(base64);
+                    console.log(width, height, numTokens)
+                    numTokens += calculateImageTokenCost(width, height, "high");
+                    console.log(numTokens)
+                });
+            } else {
+                numTokens += encoding.encode(value).length;
+            }
             if (key === "name") { // if there's a name, the role is omitted
                 numTokens -= 1; // role is always required and always 1 token
             }
@@ -136,7 +181,7 @@ app.post('/gettokencost', async (req, res) => {
         if (message === null || message === undefined || typeof model !== 'string') {
             throw new Error('Invalid input');
         }
-
+        console.log(message)
         return res.json({ count: numTokensFromMessage(message) });
     } catch (error) {
         console.log(error)

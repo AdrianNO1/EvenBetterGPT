@@ -2,7 +2,7 @@
     "defaultChatSettings": {
         "systemPrompt": "You are a helpful assistant.",
         "model": "gpt-3.5-turbo",
-        "maxTokens": 4000,
+        "maxTokens": 400,
         "temperature": 0,
         "topP": 1,
         "prescencePenalty": 0,

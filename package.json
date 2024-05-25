@@ -12,6 +12,7 @@
     "axios": "^1.6.8",
     "body-parser": "^1.20.2",
     "canvas": "^2.11.2",
+    "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "flatted": "^3.3.1",
     "openai": "^4.32.1",

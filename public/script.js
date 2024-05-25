@@ -389,6 +389,9 @@ function updateTreeControl(){
     TC.forEach((element, index) => {
         chatContainer.children[index+1].querySelector(".treeNode").innerHTML = `${element[0]} / ${element[1]}`
         if (element[1] > 1){
+            if (index == 0){
+                chatContainer.children[index+1].style.display = "block"
+            }
             chatContainer.children[index+1].querySelector(".treeControl").style.visibility = "visible"
         }
     });
@@ -441,6 +444,10 @@ function add_chat_message(content, user, images){
         messages[index].role = role
         messagesTree.updateTreant()
         updateTokenCosts()
+    }
+
+    if (index === 0 && user === "system" && content === ""){
+        htmlObject.style.display = "none"
     }
 
     if (images){
@@ -1198,6 +1205,10 @@ let modelsSettings = {
     "gpt-3.5-turbo": {
         "limits": defaultLimits,
         "tokenCost": {"input": 0.5/m1, "output": 1.5/m1}
+    },
+    "gpt-4o": {
+        "limits": defaultLimits,
+        "tokenCost": {"input": 5/m1, "output": 15/m1}
     },
     "gpt-4-turbo-2024-04-09": {
         "limits": defaultLimits,

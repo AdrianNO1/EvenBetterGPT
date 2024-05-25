@@ -4,21 +4,18 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import OpenAI from "openai";
 import { promises as fs } from 'fs';
-import { type } from 'os';
 import { parse, stringify } from 'flatted';
-import { all } from 'axios';
 import tiktoken from 'tiktoken';
-import { get } from 'http';
 import Canvas from 'canvas';
 
 let dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const chatsPath = path.join(dirname, 'chats');
 
-const openai = new OpenAI();
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEYt });
 
 const app = express();
-const port = 3000;
+const port = 3200;
 
 // Middleware to parse JSON bodies
 app.use(bodyParser.json({limit: '500mb'}));
@@ -354,11 +351,16 @@ app.post('/submit', async (req, res) => {
     const chatId = req.body.chatId;
     const settings = req.body.settings;
     let messagesTree = req.body.messagesTree;
-
+    let messages = req.body.messages
+    if (messages.length > 0 && messages[0].role === "system" && messages[0].content === ""){7
+        console.log("did stuff")
+        messages.shift()
+    }
+    console.log(messages)
     try {
         const startTime = new Date().getTime();
         const completion = await openai.chat.completions.create({
-            messages: req.body.messages,
+            messages: messages,
             model: settings.model,
             max_tokens: settings.maxTokens,
             temperature: settings.temperature,
@@ -423,6 +425,7 @@ app.post('/submit', async (req, res) => {
         }, 200);
 
         console.log("finished in ", new Date().getTime() - startTime, "ms")
+        console.log("Tokens per second: ", tokens / ((new Date().getTime() - startTime) / 1000))
 
         res.end();
 

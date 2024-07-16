@@ -3,6 +3,7 @@ import bodyParser from 'body-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import OpenAI from "openai";
+import Anthropic from '@anthropic-ai/sdk';
 import { promises as fs } from 'fs';
 import { parse, stringify } from 'flatted';
 import tiktoken from 'tiktoken';
@@ -13,6 +14,7 @@ let dirname = path.dirname(fileURLToPath(import.meta.url))
 const chatsPath = path.join(dirname, 'chats');
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEYt });
+const anthropic = new Anthropic({ apiKey: process.env.CLAUDE_API_KEY });
 
 const app = express();
 const port = 3200;
@@ -352,23 +354,35 @@ app.post('/submit', async (req, res) => {
     const settings = req.body.settings;
     let messagesTree = req.body.messagesTree;
     let messages = req.body.messages
-    if (messages.length > 0 && messages[0].role === "system" && messages[0].content === ""){7
+    if (messages.length > 0 && messages[0].role === "system" && messages[0].content === ""){
         console.log("did stuff")
         messages.shift()
     }
     console.log(messages)
     try {
         const startTime = new Date().getTime();
-        const completion = await openai.chat.completions.create({
-            messages: messages,
-            model: settings.model,
-            max_tokens: settings.maxTokens,
-            temperature: settings.temperature,
-            top_p: settings.topP,
-            frequency_penalty: settings.frequencyPenalty,
-            presence_penalty: settings.prescencePenalty,
-            stream: true,
-        });
+        
+        let completion;
+        if (settings.model.toLowerCase().includes('claude')) {
+            completion = await anthropic.messages.stream({
+                messages: messages,
+                model: settings.model,
+                max_tokens: settings.maxTokens,
+                temperature: settings.temperature,
+                top_p: settings.topP,
+            });
+        } else {
+            completion = await openai.chat.completions.create({
+                messages: messages,
+                model: settings.model,
+                max_tokens: settings.maxTokens,
+                temperature: settings.temperature,
+                top_p: settings.topP,
+                frequency_penalty: settings.frequencyPenalty,
+                presence_penalty: settings.prescencePenalty,
+                stream: true,
+            });
+        }
         
         res.writeHead(200, {
             'Content-Type': 'text/event-stream',
@@ -400,16 +414,29 @@ app.post('/submit', async (req, res) => {
         console.log("generating...")
         let i = 0
         for await (const chunk of completion) {
-            if (chunk.choices[0].delta.content) {
-                messagesTree.currentNode.message.content += chunk.choices[0].delta.content;
-                if (i % 4 == 0){
-                    fileData.messages = stringify(messagesTree);
-                    allChats[currentChatIndex].messages = fileData.messages;
-                    writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
+            if (settings.model.toLowerCase().includes('claude')) {
+                if (chunk.type === 'content_block_delta') {
+                    messagesTree.currentNode.message.content += chunk.delta.text;
+                    if (i % 4 == 0){
+                        fileData.messages = stringify(messagesTree);
+                        allChats[currentChatIndex].messages = fileData.messages;
+                        writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
+                    }
+                    res.write(JSON.stringify({"chunk": chunk.delta.text}) + "<|endoftext|>");
+                    i += 1
                 }
+            } else {
+                if (chunk.choices[0].delta.content) {
+                    messagesTree.currentNode.message.content += chunk.choices[0].delta.content;
+                    if (i % 4 == 0){
+                        fileData.messages = stringify(messagesTree);
+                        allChats[currentChatIndex].messages = fileData.messages;
+                        writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
+                    }
                     
                 res.write(JSON.stringify({"chunk": chunk.choices[0].delta.content}) + "<|endoftext|>");
                 i += 1
+                }
             }
         }
 

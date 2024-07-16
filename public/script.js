@@ -415,6 +415,22 @@ function createNewImageElement(backgroundImage){
             let node = messagesTree.getNodeFromIndex(newElem.parentElement.parentElement.messageIndex)
             messagesTree.branchOut(node)
             node = messagesTree.getNodeFromIndex(newElem.parentElement.parentElement.messageIndex)
+
+            node.images.splice(indexToRemove, 1)
+            messages = messagesTree.getMessagesList()
+
+            console.log("aa", node.images)
+            console.log(node.id)
+            getTokenCost(node).then(tokenCost => {
+                console.log("NEW TOKEN COST:", tokenCost)
+                node.tokens = tokenCost
+                updateTokenCosts()
+                saveChat()
+            }).catch(error => {
+                alert("btw newNode.tokens is now NaN. Failed to get token cost:", error);
+                console.log("error from hehere")
+            });
+
         }
         newElem.remove()
     }
@@ -745,6 +761,7 @@ class MessageTree {
                 return null
             }
             messages.push(node.tokens);
+            console.log("Message:", node.message.content, "Tokens:", node.tokens, "ID:", node.id, "Images:", node.images)
             node = node.parent;
         }
         return messages.reverse();

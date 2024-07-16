@@ -1,3 +1,7 @@
+document.getElementsByClassName("inputArea")[0].addEventListener("mousedown", function(event){
+    document.getElementById("input").focus();
+});
+
 function handleEnterSubmit(event) {
     if (!isGenerating){
         if (event.which === 13 && !event.shiftKey) {
@@ -281,6 +285,7 @@ function utilityEdit(button){
         if (isGenerating){
             return
         }
+        obj.querySelector(".message").onkeydown = null
         obj.querySelector(".message").contentEditable = false
         obj.querySelector(".editButtons").style.display = "none"
         obj.querySelector(".utilityButtonContainer").style.display = "flex"
@@ -315,6 +320,7 @@ function utilityEdit(button){
     }
 
     function save(){
+        obj.querySelector(".message").onkeydown = null
         obj.querySelector(".message").contentEditable = false;
         obj.querySelector(".editButtons").style.display = "none";
         obj.querySelector(".utilityButtonContainer").style.display = "flex";
@@ -347,6 +353,7 @@ function utilityEdit(button){
     }
 
     function cancel(){
+        obj.querySelector(".message").onkeydown = null
         obj.querySelector(".message").contentEditable = false
         obj.querySelector(".editButtons").style.display = "none"
         obj.querySelector(".utilityButtonContainer").style.display = "flex"
@@ -356,6 +363,14 @@ function utilityEdit(button){
     obj.querySelector(".generateButton").onclick = generate
     obj.querySelector(".saveButton").onclick = save
     obj.querySelector(".cancelButton").onclick = cancel
+
+    obj.querySelector(".message").addEventListener("keydown", function(event){
+        if (event.key == "Enter"){
+            event.preventDefault();
+            generate();
+        }
+    })
+    
 }
 
 function updateArrows(obj, recursive=false){
@@ -1219,6 +1234,10 @@ let defaultLimits = {
 
 let m1 = 1000000
 let modelsSettings = {
+    "claude-3-5-sonnet-20240620": {
+        "limits": defaultLimits,
+        "tokenCost": {"input": 3/m1, "output": 15/m1}
+    },
     "gpt-3.5-turbo": {
         "limits": defaultLimits,
         "tokenCost": {"input": 0.5/m1, "output": 1.5/m1}

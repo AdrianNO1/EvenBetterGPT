@@ -82,6 +82,10 @@ await new Promise(resolve => setTimeout(resolve, 1000))
 const allChats = await getAllChats()
 
 function writeToFile(filePath, jsonData){
+    const currentTimeWithMilliseconds = new Date().toISOString()
+    console.log(`current time with milliseconds: ${currentTimeWithMilliseconds}`);
+    console.log("writing to", filePath)
+    console.log("Writing JSON DATA:", jsonData)
     fs.writeFile(filePath, jsonData, (err) => {
         if (err) {
             console.error('Error writing file:', err);
@@ -401,7 +405,11 @@ app.post('/submit', async (req, res) => {
             return;
         }
 
-        const fileData = JSON.parse(await fs.readFile(path.join(chatsPath, chatId + ".json"), 'utf8'));
+        const fileDataBeforeParse = await fs.readFile(path.join(chatsPath, chatId + ".json"), 'utf8')
+        const currentTimeWithMilliseconds = new Date().toISOString()
+        console.log(`current time with milliseconds: ${currentTimeWithMilliseconds}`);
+        console.log("fileDataBeforeParse", fileDataBeforeParse)
+        const fileData = JSON.parse(fileDataBeforeParse);
         fileData.messages = messagesTree;
         fileData.chatSettings = settings;
         allChats[currentChatIndex].messages = fileData.messages;

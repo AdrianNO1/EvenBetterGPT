@@ -8,8 +8,9 @@ import { promises as fs } from 'fs';
 import { parse, stringify } from 'flatted';
 import tiktoken from 'tiktoken';
 import Canvas from 'canvas';
+import pQueue from 'p-queue'; // Import p-queue
 
-let dirname = path.dirname(fileURLToPath(import.meta.url))
+let dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const chatsPath = path.join(dirname, 'chats');
 
@@ -20,41 +21,43 @@ const app = express();
 const port = 3200;
 
 // Middleware to parse JSON bodies
-app.use(bodyParser.json({limit: '500mb'}));
+app.use(bodyParser.json({ limit: '500mb' }));
 
-const publicPath = path.join(dirname, 'public')
+const publicPath = path.join(dirname, 'public');
 
 app.use(express.static(publicPath));
 
-async function getAllChats(){
-    let files = await fs.readdir(chatsPath)
-    let chats = []
-    for (let file of files){
-        let chat = JSON.parse(await fs.readFile(path.join(chatsPath, file), 'utf8'))
-        chats.push(chat)
-    }
-    // sort chats by createdAt
-    chats.sort((a, b) => {
-        return new Date(b.createdAt) - new Date(a.createdAt)
-    })
-    return chats
+// Create a queue for file operations
+const fileQueue = new pQueue({ concurrency: 1 });
+
+async function getAllChats() {
+    let files = await fs.readdir(chatsPath);
+    let chats = await Promise.all(files.map(async file => {
+        try {
+            return JSON.parse(await fs.readFile(path.join(chatsPath, file), 'utf8'));
+        } catch (error) {
+            console.error(`Error reading file ${file}:`, error);
+            return null;
+        }
+    }));
+    chats = chats.filter(chat => chat !== null);
+    chats.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return chats;
 }
 
+async function createNewChat(name) {
+    let data = JSON.parse(await fs.readFile(path.join(dirname, "settings.json"), 'utf8'));
 
-async function createNewChat(name){
-    let data = JSON.parse(await fs.readFile(path.join(dirname, "settings.json"), 'utf8'))
-    
-    delete Object.assign(data, {["chatSettings"]: data["defaultChatSettings"] })["defaultChatSettings"];
-    data.createdAt = new Date().toISOString()
-    data.id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-    
-    data.messages = `[{"root":"1","currentNode":"2","nodeIds":"3"},{"message":null,"id":"4","parent":null,"children":"5","previouslySelectedChild":"2","isRoot":true,"tokens":0},{"message":"6","id":"7","parent":"1","children":"8","previouslySelectedChild":null,"tokens":12},{"1714729139792bee7975b68117":"2"},"root",["2"],{"role":"9","content":"10"},"1714729139792bee7975b68117",[],"system","${data.chatSettings.systemPrompt}"]`
+    delete Object.assign(data, { ["chatSettings"]: data["defaultChatSettings"] })["defaultChatSettings"];
+    data.createdAt = new Date().toISOString();
+    data.id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+    data.messages = `[{"root":"1","currentNode":"2","nodeIds":"3"},{"message":null,"id":"4","parent":null,"children":"5","previouslySelectedChild":"2","isRoot":true,"tokens":0},{"message":"6","id":"7","parent":"1","children":"8","previouslySelectedChild":null,"tokens":12},{"1714729139792bee7975b68117":"2"},"root",["2"],{"role":"9","content":"10"},"1714729139792bee7975b68117",[],"system","${data.chatSettings.systemPrompt}"]`;
     delete data.chatSettings.systemPrompt;
-    
-    if (name){
-        data.name = name
-    }
-    else{
+
+    if (name) {
+        data.name = name;
+    } else {
         const regex = /New Chat(\s\d+)?/;
         const chatNumbers = allChats.map(chat => {
             const match = chat.name.match(regex);
@@ -64,38 +67,45 @@ async function createNewChat(name){
         const newChatNumber = maxChatNumber + 1;
         data.name = newChatNumber === 1 ? "New Chat" : `New Chat ${newChatNumber}`;
     }
-    
-    writeToFile(path.join(chatsPath, data.id + ".json"), JSON.stringify(data, null, 4))
-    
-    allChats.push(data)
+
+    await writeToFile(path.join(chatsPath, data.id + ".json"), JSON.stringify(data, null, 4));
+
+    allChats.push(data);
     allChats.sort((a, b) => {
-        return new Date(b.createdAt) - new Date(a.createdAt)
-    })
-    return data
+        return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+    return data;
 }
 
-//createNewChat("Test Chat 2")
+// Wait 1 second
+await new Promise(resolve => setTimeout(resolve, 1000));
 
-// wait 1 second
-await new Promise(resolve => setTimeout(resolve, 1000))
+const allChats = await getAllChats();
 
-const allChats = await getAllChats()
+function writeToFile(filePath, jsonData) {
+    return fileQueue.add(() => fs.writeFile(filePath, jsonData));
+}
 
-function writeToFile(filePath, jsonData){
-    fs.writeFile(filePath, jsonData, (err) => {
-        if (err) {
-            console.error('Error writing file:', err);
+async function readFileWithRetry(filePath, maxRetries = 5, delay = 100) {
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            const content = await fileQueue.add(() => fs.readFile(filePath, 'utf8'));
+            if (content) return content;
+        } catch (error) {
+            console.error(`Read attempt ${i + 1} failed:`, error);
         }
-    });
+        await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    throw new Error(`Failed to read file after ${maxRetries} attempts`);
 }
 
 app.get('/videos', (req, res) => {
     res.sendFile(path.join(publicPath, 'videos.html'));
-})
+});
 
 app.get('/feedback', (req, res) => {
     res.sendFile(path.join(publicPath, 'feedback.html'));
-})
+});
 
 function calculateImageTokenCost(width, height, detail) {
     const lowDetailCost = 85;
@@ -144,19 +154,18 @@ function numTokensFromMessage(message, model = "gpt-3.5-turbo-0301") {
 
     if (model === "gpt-3.5-turbo-0301") { // should be accurate enough for most things
         let numTokens = 0;
-        //messages.forEach(message => {
         numTokens += 4; // every message follows <im_start>{role/name}\n{content}<im_end>\n
         for (const [key, value] of Object.entries(message)) {
             if (typeof value !== 'string') {
                 numTokens += encoding.encode(value[0].text).length;
                 value.slice(1).forEach(item => {
-                    console.log("AA", item)
+                    console.log("AA", item);
                     let base64 = item.image_url.url;
                     // get the image dimensions from the base64 string
                     let { width, height } = getImageDimensions(base64);
-                    console.log(width, height, numTokens)
+                    console.log(width, height, numTokens);
                     numTokens += calculateImageTokenCost(width, height, "high");
-                    console.log(numTokens)
+                    console.log(numTokens);
                 });
             } else {
                 numTokens += encoding.encode(value).length;
@@ -165,7 +174,6 @@ function numTokensFromMessage(message, model = "gpt-3.5-turbo-0301") {
                 numTokens -= 1; // role is always required and always 1 token
             }
         }
-        //});
         numTokens += 2; // every reply is primed with <im_start>assistant
         return numTokens;
     } else {
@@ -180,21 +188,21 @@ app.post('/gettokencost', async (req, res) => {
         if (message === null || message === undefined || typeof model !== 'string') {
             throw new Error('Invalid input');
         }
-        console.log(message)
+        console.log(message);
         return res.json({ count: numTokensFromMessage(message) });
     } catch (error) {
-        console.log(error)
+        console.log(error);
         return res.status(400).json({ error: error.message });
     }
-})
+});
 
 app.post("/feedbacksubmit", async (req, res) => {
     const datetime = new Date().toISOString();
     const filename = `feedback\\${datetime.replace(/:/g, '-')}.json`;
     const filepath = path.join(dirname, filename);
-    writeToFile(filepath, JSON.stringify(req.body, null, 4));
-    res.json()
-})
+    await writeToFile(filepath, JSON.stringify(req.body, null, 4));
+    res.json();
+});
 
 app.post("/search", async (req, res) => {
     const query = req.body.query;
@@ -204,14 +212,14 @@ app.post("/search", async (req, res) => {
             if (node.message.content.toLowerCase().includes(query.toLowerCase())) {
                 matches.push(allChats[i].id);
             }
-        })
+        });
         if (query === "" || allChats[i].name.toLowerCase().includes(query.toLowerCase())) {
             matches.push(allChats[i].id);
         }
     }
     matches = [...new Set(matches)];
     res.json({ matches });
-})
+});
 
 app.post('/deletechat', async (req, res) => {
     const chatId = req.body.id;
@@ -223,17 +231,13 @@ app.post('/deletechat', async (req, res) => {
         }
     }
     if (foundChat) {
-        fs.unlink(path.join(chatsPath, chatId + ".json"), (err) => {
-            if (err) {
-                console.error('Error deleting file:', err);
-            }
-        });
+        await fileQueue.add(() => fs.unlink(path.join(chatsPath, chatId + ".json")));
         allChats.splice(allChats.indexOf(foundChat), 1);
         res.json({ success: true });
     } else {
         res.json({ error: "Chat not found" });
     }
-})
+});
 
 app.post('/renamechat', async (req, res) => {
     const chatId = req.body.id;
@@ -247,12 +251,12 @@ app.post('/renamechat', async (req, res) => {
     }
     if (foundChat) {
         foundChat.name = newName;
-        writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(foundChat, null, 4));
+        await writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(foundChat, null, 4));
         res.json({ success: true });
     } else {
         res.json({ error: "Chat not found" });
     }
-})
+});
 
 app.post('/getchatlist', async (req, res) => {
     const data = {
@@ -260,18 +264,18 @@ app.post('/getchatlist', async (req, res) => {
             return { id: chat.id, name: chat.name };
         })
     };
-    data.topChat = allChats[0]
-    data.defaultSettings = JSON.parse(await fs.readFile(path.join(dirname, "settings.json"), 'utf8')).defaultChatSettings
+    data.topChat = allChats[0];
+    data.defaultSettings = JSON.parse(await fs.readFile(path.join(dirname, "settings.json"), 'utf8')).defaultChatSettings;
     res.json(data);
-})
+});
 
 app.post('/savedefaultsettings', async (req, res) => {
     const settings = req.body.settings;
-    let oldSettings = JSON.parse(await fs.readFile(path.join(dirname, "settings.json"), 'utf8'))
-    oldSettings.defaultChatSettings = settings
-    writeToFile(path.join(dirname, "settings.json"), JSON.stringify(oldSettings, null, 4));
+    let oldSettings = JSON.parse(await fs.readFile(path.join(dirname, "settings.json"), 'utf8'));
+    oldSettings.defaultChatSettings = settings;
+    await writeToFile(path.join(dirname, "settings.json"), JSON.stringify(oldSettings, null, 4));
     res.json({ success: true });
-})
+});
 
 app.post('/savechat', async (req, res) => {
     const messages = req.body.messages;
@@ -285,25 +289,25 @@ app.post('/savechat', async (req, res) => {
             break;
         }
     }
-    
+
     if (foundChat) {
-        let parsedMessages = parse(messages)
+        let parsedMessages = parse(messages);
 
         for (const value of Object.values(parsedMessages.nodeIds)) {
-            if (value.tokens === NaN || value.tokens === undefined || value.tokens === null){
-                value.tokens = numTokensFromMessage(value.message)
-                console.log("set tokens to", value.tokens, " for ", value.message)
+            if (value.tokens === NaN || value.tokens === undefined || value.tokens === null) {
+                value.tokens = numTokensFromMessage(value.message);
+                console.log("set tokens to", value.tokens, " for ", value.message);
             }
         }
 
-        foundChat.messages = stringify(parsedMessages)
-        foundChat.chatSettings = settings
-        writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(foundChat, null, 4));
+        foundChat.messages = stringify(parsedMessages);
+        foundChat.chatSettings = settings;
+        await writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(foundChat, null, 4));
         res.json({ success: true });
     } else {
         res.json({ error: "Chat not found" });
     }
-})
+});
 
 app.post('/savesettings', async (req, res) => {
     const settings = JSON.parse(req.body.settings);
@@ -316,18 +320,18 @@ app.post('/savesettings', async (req, res) => {
             break;
         }
     }
-    
+
     if (foundChat) {
-        foundChat.chatSettings = settings
-        writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(foundChat, null, 4));
+        foundChat.chatSettings = settings;
+        await writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(foundChat, null, 4));
         res.json({ success: true });
     } else {
         res.json({ error: "Chat not found" });
     }
-})
+});
 
 app.post('/loadchat', async (req, res) => {
-    let chatId = req.body.id
+    let chatId = req.body.id;
     let foundChat = null;
     for (let i = 0; i < allChats.length; i++) {
         if (allChats[i].id == chatId) {
@@ -341,29 +345,52 @@ app.post('/loadchat', async (req, res) => {
     } else {
         res.json({ error: "Chat not found" });
     }
-})
+});
 
 app.post('/newchat', async (req, res) => {
-    const data = await createNewChat()
-    res.json({data})
-})
+    const data = await createNewChat();
+    res.json({ data });
+});
 
 app.post('/submit', async (req, res) => {
     console.log('Received:', req.body);
     const chatId = req.body.chatId;
     const settings = req.body.settings;
     let messagesTree = req.body.messagesTree;
-    let messages = req.body.messages
-    if (messages.length > 0 && messages[0].role === "system" && messages[0].content === ""){
-        console.log("did stuff")
-        messages.shift()
+    let messages = req.body.messages;
+    if (messages.length > 0 && messages[0].role === "system" && messages[0].content === "") {
+        console.log("did stuff");
+        messages.shift();
     }
-    console.log(messages)
+    console.log(messages);
     try {
         const startTime = new Date().getTime();
-        
+
         let completion;
         if (settings.model.toLowerCase().includes('claude')) {
+            // loop through messages and check if content is a list
+            for (let i = 0; i < messages.length; i++) {
+                if (typeof messages[i].content !== 'string') {
+                    // loop through content list
+                    for (let j = 0; j < messages[i].content.length; j++) {
+                        if (messages[i].content[j].type == "image_url"){
+                            let [mimeType, base64Data] = messages[i].content[j].image_url.url.split(',');
+    
+                            // Extract MIME type
+                            mimeType = mimeType.split(':')[1].split(';')[0];
+                            
+                            messages[i].content[j].type = "image"
+                            messages[i].content[j].source = {
+                                "type": "base64",
+                                "media_type": mimeType,
+                                "data": base64Data
+                            };
+
+                            delete messages[i].content[j].image_url;
+                        }
+                    }
+                }
+            }
             completion = await anthropic.messages.stream({
                 messages: messages,
                 model: settings.model,
@@ -383,13 +410,13 @@ app.post('/submit', async (req, res) => {
                 stream: true,
             });
         }
-        
+
         res.writeHead(200, {
             'Content-Type': 'text/event-stream',
             'Cache-Control': 'no-cache',
             'Connection': 'keep-alive',
         });
-        
+
         let currentChatIndex = null;
         allChats.forEach((chat, index) => {
             if (chat.id == chatId) {
@@ -401,65 +428,85 @@ app.post('/submit', async (req, res) => {
             return;
         }
 
-        const fileData = JSON.parse(await fs.readFile(path.join(chatsPath, chatId + ".json"), 'utf8'));
+        console.log("HEREEE");
+        const fileToRead = await readFileWithRetry(path.join(chatsPath, chatId + ".json"));
+        console.log("AFTER");
+        let fileData;
+        try {
+            fileData = JSON.parse(fileToRead);
+        } catch (error) {
+            console.log('Error:', error);
+            console.log(fileToRead);
+            res.status(400).json({ error: error.message });
+            return; // Ensure to return after sending the response
+        }
+        console.log("AFTER2");
         fileData.messages = messagesTree;
         fileData.chatSettings = settings;
         allChats[currentChatIndex].messages = fileData.messages;
 
-        writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
+        await writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
         messagesTree = parse(messagesTree);
 
         messagesTree.currentNode.parent.tokens = numTokensFromMessage(messagesTree.currentNode.parent.message);
-    
-        console.log("generating...")
-        let i = 0
+
+        console.log("generating...");
+        let i = 0;
+        let last_write_time = new Date().getTime();
+        const how_often_write = 1000;
         for await (const chunk of completion) {
             if (settings.model.toLowerCase().includes('claude')) {
                 if (chunk.type === 'content_block_delta') {
                     messagesTree.currentNode.message.content += chunk.delta.text;
-                    if (i % 4 == 0){
+                    if (new Date().getTime() - last_write_time > how_often_write) {
+                        last_write_time = new Date().getTime();
                         fileData.messages = stringify(messagesTree);
                         allChats[currentChatIndex].messages = fileData.messages;
-                        writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
+                        await writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
                     }
-                    res.write(JSON.stringify({"chunk": chunk.delta.text}) + "<|endoftext|>");
-                    i += 1
+                    res.write(JSON.stringify({ "chunk": chunk.delta.text }) + "<|endoftext|>");
+                    i += 1;
                 }
             } else {
                 if (chunk.choices[0].delta.content) {
                     messagesTree.currentNode.message.content += chunk.choices[0].delta.content;
-                    if (i % 4 == 0){
+                    if (new Date().getTime() - last_write_time > how_often_write) {
+                        last_write_time = new Date().getTime();
                         fileData.messages = stringify(messagesTree);
                         allChats[currentChatIndex].messages = fileData.messages;
-                        writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
+                        await writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
                     }
-                    
-                res.write(JSON.stringify({"chunk": chunk.choices[0].delta.content}) + "<|endoftext|>");
-                i += 1
+                    res.write(JSON.stringify({ "chunk": chunk.choices[0].delta.content }) + "<|endoftext|>");
+                    i += 1;
                 }
             }
         }
 
         let tokens = numTokensFromMessage(messagesTree.currentNode.message);
         messagesTree.currentNode.tokens = tokens;
-        res.write(JSON.stringify({"totalTokens": tokens}) + "<|endoftext|>")
+        res.write(JSON.stringify({ "totalTokens": tokens }) + "<|endoftext|>");
 
-        setTimeout(function() {
+        setTimeout(async function() {
             fileData.messages = stringify(messagesTree);
             allChats[currentChatIndex].messages = fileData.messages;
-            writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
-            console.log("finished writing")
-        }, 200);
+            await writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
+            console.log("finished writing");
+        }, how_often_write);
 
-        console.log("finished in ", new Date().getTime() - startTime, "ms")
-        console.log("Tokens per second: ", tokens / ((new Date().getTime() - startTime) / 1000))
+        console.log("finished in ", new Date().getTime() - startTime, "ms");
+        console.log("Tokens per second: ", tokens / ((new Date().getTime() - startTime) / 1000));
 
         res.end();
 
     } catch (error) {
         console.error('Error:', error);
+        console.log(error.message)
         if (!res.headersSent) {
-            res.status(400).json({ error: error.error.message });
+            if (error.message){
+                res.status(400).json({ error: error.message });
+            } else{
+                res.status(400).json({ error: error.error.message });
+            }
         }
     }
 });

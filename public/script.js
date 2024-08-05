@@ -65,7 +65,7 @@ function messageToHTML(content){
             newElem.innerHTML = `
             <div class="codeCopyBlock">
                 <p>python</p>
-                <button class="copyButton" onclick="copyCode(this)">
+                <button class="copyButton" onmousedown="copyCode(this)" ontouchstart="copyCode(this)">
                     <svg class="copyButtonIcon" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
                     <svg class="copyButtonOk" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><polyline points="20 6 9 17 4 12"></polyline></svg>
                     <p>Copy code</p>
@@ -365,7 +365,7 @@ function utilityEdit(button){
     obj.querySelector(".cancelButton").onclick = cancel
 
     obj.querySelector(".message").addEventListener("keydown", function(event){
-        if (event.key == "Enter"){
+        if (event.key == "Enter" && !event.shiftKey){
             event.preventDefault();
             generate();
         }
@@ -1232,28 +1232,31 @@ let defaultLimits = {
     "frequencyPenalty": 2
 }
 
+let gpt4ominiLimits = JSON.parse(JSON.stringify(defaultLimits))
+gpt4ominiLimits["maxTokens"] = 16384
+
 let m1 = 1000000
 let modelsSettings = {
     "claude-3-5-sonnet-20240620": {
         "limits": defaultLimits,
         "tokenCost": {"input": 3/m1, "output": 15/m1}
     },
-    "gpt-3.5-turbo": {
+    "gpt-4o-mini": {
         "limits": defaultLimits,
-        "tokenCost": {"input": 0.5/m1, "output": 1.5/m1}
+        "tokenCost": {"input": 0.15/m1, "output": 0.6/m1}
     },
     "gpt-4o": {
         "limits": defaultLimits,
         "tokenCost": {"input": 5/m1, "output": 15/m1}
     },
-    "gpt-4-turbo-2024-04-09": {
-        "limits": defaultLimits,
-        "tokenCost": {"input": 10/m1, "output": 30/m1}
-    },
     "gpt-4-turbo": {
         "limits": defaultLimits,
         "tokenCost": {"input": 10/m1, "output": 30/m1}
-    }
+    },
+    "gpt-3.5-turbo": {
+        "limits": defaultLimits,
+        "tokenCost": {"input": 0.5/m1, "output": 1.5/m1}
+    },
 }
 settings["model"] = "gpt-3.5-turbo" //Object.keys(modelsSettings)[0]
 

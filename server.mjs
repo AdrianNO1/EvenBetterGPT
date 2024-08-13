@@ -83,12 +83,18 @@ await new Promise(resolve => setTimeout(resolve, 1000));
 const allChats = await getAllChats();
 
 function writeToFile(filePath, jsonData) {
+    const currentTimeWithMilliseconds = new Date().toISOString()
+    console.log(`current time with milliseconds: ${currentTimeWithMilliseconds}`);
+    console.log("writing to file", filePath);
     return fileQueue.add(() => fs.writeFile(filePath, jsonData));
 }
 
 async function readFileWithRetry(filePath, maxRetries = 5, delay = 100) {
     for (let i = 0; i < maxRetries; i++) {
         try {
+            const currentTimeWithMilliseconds = new Date().toISOString()
+            console.log(`current time with milliseconds: ${currentTimeWithMilliseconds}`);
+            console.log(`Reading file ${filePath} (attempt ${i + 1})`);
             const content = await fileQueue.add(() => fs.readFile(filePath, 'utf8'));
             if (content) return content;
         } catch (error) {

@@ -99,6 +99,8 @@ async function readFileWithRetry(filePath, maxRetries = 5, delay = 100) {
             if (content) return content;
         } catch (error) {
             console.error(`Read attempt ${i + 1} failed:`, error);
+            const currentTimeWithMilliseconds = new Date().toISOString()
+            await writeToFile(`debug\\${currentTimeWithMilliseconds.replace(/:/g, '-')}.json`, JSON.stringify({ error: error.message }, null, 4));
         }
         await new Promise(resolve => setTimeout(resolve, delay));
     }
@@ -513,6 +515,8 @@ app.post('/submit', async (req, res) => {
             } else{
                 res.status(400).json({ error: error.error.message });
             }
+        } else {
+            res.write(JSON.stringify({ "error": error.error.error.message }) + "<|endoftext|>")
         }
     }
 });

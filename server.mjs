@@ -100,6 +100,13 @@ async function readFileWithRetry(filePath, maxRetries = 5, delay = 100) {
         } catch (error) {
             console.error(`Read attempt ${i + 1} failed:`, error);
             const currentTimeWithMilliseconds = new Date().toISOString()
+            try {
+                await fs.mkdir('debug');
+            } catch (error) {
+                if (error.code !== 'EEXIST') {
+                    throw error;
+                }
+            }
             await writeToFile(`debug\\${currentTimeWithMilliseconds.replace(/:/g, '-')}.json`, JSON.stringify({ error: error.message }, null, 4));
         }
         await new Promise(resolve => setTimeout(resolve, delay));
@@ -371,6 +378,9 @@ app.post('/submit', async (req, res) => {
         messages.shift();
     }
     console.log(messages);
+
+    const how_often_write = 1000;
+    let fileData;
     try {
         const startTime = new Date().getTime();
 
@@ -439,7 +449,6 @@ app.post('/submit', async (req, res) => {
         console.log("HEREEE");
         const fileToRead = await readFileWithRetry(path.join(chatsPath, chatId + ".json"));
         console.log("AFTER");
-        let fileData;
         try {
             fileData = JSON.parse(fileToRead);
         } catch (error) {
@@ -461,7 +470,7 @@ app.post('/submit', async (req, res) => {
         console.log("generating...");
         let i = 0;
         let last_write_time = new Date().getTime();
-        const how_often_write = 1000;
+
         for await (const chunk of completion) {
             if (settings.model.toLowerCase().includes('claude')) {
                 if (chunk.type === 'content_block_delta') {
@@ -509,6 +518,14 @@ app.post('/submit', async (req, res) => {
     } catch (error) {
         console.error('Error:', error);
         console.log(error.message)
+
+        setTimeout(async function() {
+            fileData.messages = stringify(messagesTree);
+            allChats[currentChatIndex].messages = fileData.messages;
+            await writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
+            console.log("finished writing");
+        }, how_often_write);
+
         if (!res.headersSent) {
             if (error.message){
                 res.status(400).json({ error: error.message });
@@ -516,7 +533,7 @@ app.post('/submit', async (req, res) => {
                 res.status(400).json({ error: error.error.message });
             }
         } else {
-            res.write(JSON.stringify({ "error": error.error.error.message }) + "<|endoftext|>")
+            res.write(JSON.stringify({ "error": error.error == undefined ? JSON.stringify(error) : error.error.error.message }) + "<|endoftext|>")
         }
     }
 });

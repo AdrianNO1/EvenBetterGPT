@@ -1,6 +1,7 @@
 /node_modules/
 /chats/*
 /feedback/*
+/debug/*
 test.py
 /public/videos
 /public/patricklogo.png

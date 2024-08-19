@@ -422,7 +422,7 @@ function createNewImageElement(backgroundImage){
     deleteButton.classList.add("imageContainerDeleteButton")
     deleteButton.innerHTML = `<svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`
     deleteButton.onclick = function(){
-        let indexToRemove = [...newElem.parentElement.querySelectorAll(".imageContainer")].indexOf(newElem)
+        let indexToRemove = [...newElem.parentElement.querySelsaveChatectorAll(".imageContainer")].indexOf(newElem)
         if (newElem.parentElement.classList.contains("inputArea")){
             promptImages.splice(indexToRemove, 1)
         }
@@ -555,6 +555,11 @@ function runApiCall(messages, element){
                                 part = JSON.parse(part)
                                 if ("chunk" in part){
                                     totalText += part["chunk"]
+                                }
+                                if ("error" in part){
+                                    showError(part["error"])
+                                    stopListening()
+                                    return
                                 }
                             });
                             newStuff = JSON.parse(splitted[splitted.length-1])
@@ -1257,6 +1262,10 @@ let modelsSettings = {
         "limits": defaultLimits,
         "tokenCost": {"input": 0.5/m1, "output": 1.5/m1}
     },
+    "claude-3-opus-20240229": {
+        "limits": defaultLimits,
+        "tokenCost": {"input": 0.5/m1, "output": 1.5/m1}
+    },
 }
 settings["model"] = "gpt-3.5-turbo" //Object.keys(modelsSettings)[0]
 
@@ -1326,7 +1335,9 @@ function unselectChatEditing(){
 }
 
 function unselectStuff(param){
-    unselectButtonLine()
+    if (settingsSelector.style.display != "none"){
+        unselectButtonLine()
+    }
     if (param.target.querySelector("chatsButtonDelete") === null && param.target.classList.contains("chatName") !== true){
         unselectChatEditing()
     }
@@ -1365,6 +1376,7 @@ buttonLine.querySelectorAll(".btnContainer").forEach(button => {
     }
     button.onclick = function(event){
         event.stopPropagation()
+        console.log(event.target)
         if (button.isEqualNode(currentButton) && !event.target.classList.contains("btnNumber")){
             unselectButtonLine()
             return

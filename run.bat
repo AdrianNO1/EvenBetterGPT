@@ -1,1 +1,1 @@
-node server.mjs
+cmd.exe /k "cd /d %~dp0 && node server.mjs"

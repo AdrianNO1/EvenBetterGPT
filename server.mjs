@@ -470,7 +470,7 @@ app.post('/submit', async (req, res) => {
                         allChats[currentChatIndex].messages = fileData.messages;
                         await writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
                     }
-                    res.write(JSON.stringify({ "chunk": chunk.delta.text }) + "<|endoftext|>");
+                    res.write(JSON.stringify({ "chunk": chunk.delta.text }) + "<1|endoftext|1>");
                     i += 1;
                 }
             } else {
@@ -482,7 +482,7 @@ app.post('/submit', async (req, res) => {
                         allChats[currentChatIndex].messages = fileData.messages;
                         await writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
                     }
-                    res.write(JSON.stringify({ "chunk": chunk.choices[0].delta.content }) + "<|endoftext|>");
+                    res.write(JSON.stringify({ "chunk": chunk.choices[0].delta.content }) + "<1|endoftext|1>");
                     i += 1;
                 }
             }
@@ -490,7 +490,7 @@ app.post('/submit', async (req, res) => {
 
         let tokens = numTokensFromMessage(messagesTree.currentNode.message);
         messagesTree.currentNode.tokens = tokens;
-        res.write(JSON.stringify({ "totalTokens": tokens }) + "<|endoftext|>");
+        res.write(JSON.stringify({ "totalTokens": tokens }) + "<1|endoftext|1>");
 
         setTimeout(async function() {
             fileData.messages = stringify(messagesTree);
@@ -518,6 +518,6 @@ app.post('/submit', async (req, res) => {
 });
 
 // Start the server
-app.listen(port, () => {
+app.listen(port, 'localhost', () => {
     console.log(`Server listening at http://localhost:${port}`);
 });

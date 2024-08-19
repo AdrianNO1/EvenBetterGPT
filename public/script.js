@@ -548,8 +548,8 @@ function runApiCall(messages, element){
                         controller.enqueue(value);
                         let newStuff = new TextDecoder("utf-8").decode(value, { stream: true })
 
-                        if (newStuff.endsWith("<|endoftext|>")){
-                            let splitted = newStuff.split("<|endoftext|>")
+                        if (newStuff.endsWith("<1|endoftext|1>")){
+                            let splitted = newStuff.split("<1|endoftext|1>")
                             splitted.pop()
                             splitted.forEach(part => {
                                 part = JSON.parse(part)

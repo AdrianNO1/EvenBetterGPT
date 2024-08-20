@@ -381,6 +381,7 @@ app.post('/submit', async (req, res) => {
 
     const how_often_write = 1000;
     let fileData;
+    let currentChatIndex = null;
     try {
         const startTime = new Date().getTime();
 
@@ -435,7 +436,6 @@ app.post('/submit', async (req, res) => {
             'Connection': 'keep-alive',
         });
 
-        let currentChatIndex = null;
         allChats.forEach((chat, index) => {
             if (chat.id == chatId) {
                 currentChatIndex = index;

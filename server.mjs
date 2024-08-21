@@ -8,7 +8,9 @@ import { promises as fs } from 'fs';
 import { parse, stringify } from 'flatted';
 import tiktoken from 'tiktoken';
 import Canvas from 'canvas';
-import pQueue from 'p-queue'; // Import p-queue
+import pQueue from 'p-queue';
+
+const useLastUsedChat = false;
 
 let dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -279,7 +281,23 @@ app.post('/getchatlist', async (req, res) => {
             return { id: chat.id, name: chat.name };
         })
     };
-    data.topChat = allChats[0];
+    let lastUsed = null;
+    if (useLastUsedChat){
+        try {
+            lastUsed = JSON.parse(await fs.readFile(path.join(dirname, "lastused.json"), 'utf8'));
+        } catch (error) {
+            console.error('Error reading last used chat:', error);
+            try {
+                await fs.mkdir('debug');
+            } catch (error) {
+                if (error.code !== 'EEXIST') {
+                    throw error;
+                }
+            }
+            await writeToFile(`debug\\${currentTimeWithMilliseconds.replace(/:/g, '-')}.json`, JSON.stringify({ lastusederror: error.message }, null, 4));
+        }
+    }
+    data.lastUsed = lastUsed ? allChats.find(chat => chat.id === lastUsed.id) ?? allChats[0] : allChats[0];
     data.defaultSettings = JSON.parse(await fs.readFile(path.join(dirname, "settings.json"), 'utf8')).defaultChatSettings;
     res.json(data);
 });
@@ -356,6 +374,10 @@ app.post('/loadchat', async (req, res) => {
     }
 
     if (foundChat) {
+        await writeToFile(path.join(dirname, "lastused.json"), JSON.stringify({ id: chatId }, null, 4));
+    }
+
+    if (foundChat) {
         res.json(foundChat);
     } else {
         res.json({ error: "Chat not found" });
@@ -364,6 +386,7 @@ app.post('/loadchat', async (req, res) => {
 
 app.post('/newchat', async (req, res) => {
     const data = await createNewChat();
+    await writeToFile(path.join(dirname, "lastused.json"), JSON.stringify({ id: data.id }, null, 4));
     res.json({ data });
 });
 
@@ -533,7 +556,7 @@ app.post('/submit', async (req, res) => {
                 res.status(400).json({ error: error.error.message });
             }
         } else {
-            res.write(JSON.stringify({ "error": error.error == undefined ? JSON.stringify(error) : error.error.error.message }) + "<|endoftext|>")
+            res.write(JSON.stringify({ "error": error.error == undefined ? JSON.stringify(error) : error.error.error.message }) + "<1|endoftext|1>")
         }
     }
 });

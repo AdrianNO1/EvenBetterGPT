@@ -781,7 +781,7 @@ class MessageTree {
                 return null
             }
             messages.push(node.tokens);
-            console.log("Message:", node.message.content, "Tokens:", node.tokens, "ID:", node.id, "Images:", node.images)
+            //console.log("Message:", node.message.content, "Tokens:", node.tokens, "ID:", node.id, "Images:", node.images)
             node = node.parent;
         }
         return messages.reverse();
@@ -1246,13 +1246,25 @@ let modelsSettings = {
         "limits": defaultLimits,
         "tokenCost": {"input": 3/m1, "output": 15/m1}
     },
-    "gpt-4o-mini": {
-        "limits": defaultLimits,
-        "tokenCost": {"input": 0.15/m1, "output": 0.6/m1}
-    },
     "gpt-4o": {
         "limits": defaultLimits,
         "tokenCost": {"input": 5/m1, "output": 15/m1}
+    },
+    "ft:gpt-4o-mini-2024-07-18:aivg-x:myreddit:9pfSQHgA": {
+        "limits": gpt4ominiLimits,
+        "tokenCost": {"input": 0.30/m1, "output": 1.2/m1}
+    },
+    "ft:gpt-4o-mini-2024-07-18:aivg-x:myredditmt:9phj3bla": {
+        "limits": gpt4ominiLimits,
+        "tokenCost": {"input": 0.30/m1, "output": 1.2/m1}
+    },
+    "ft:gpt-4o-mini-2024-07-18:aivg-x:myredditmtv3:9rYg2hxk": {
+        "limits": gpt4ominiLimits,
+        "tokenCost": {"input": 0.30/m1, "output": 1.2/m1}
+    },
+    "gpt-4o-mini": {
+        "limits": gpt4ominiLimits,
+        "tokenCost": {"input": 0.15/m1, "output": 0.6/m1}
     },
     "gpt-4-turbo": {
         "limits": defaultLimits,
@@ -1497,9 +1509,18 @@ function sidebarNewChat(name, id, atStart=false){
     return newElem
 }
 
-function loadChat(chat){
+function loadChat(chat, initial_load=false){
     currentChatId = chat.id
     let newObj = Flatted.parse(chat.messages)
+    if (initial_load){
+        console.log(newObj)
+        if (newObj.currentNode.children.length === 0 && newObj.currentNode.message.role === "system" && newObj.currentNode.message.content === "" && newObj.currentNode.parent == newObj.root){
+            console.log("yes")
+        } else {
+            createNewChat()
+            return
+        }
+    }
     messagesTree.root = newObj.root
     messagesTree.currentNode = newObj.currentNode
     messagesTree.nodeIds = newObj.nodeIds
@@ -1554,22 +1575,20 @@ fetch('/getchatlist', {
 })
 .then(data => {
     defaultSettings = data.defaultSettings
-    if (data.topChat){
-        loadChat(data.topChat)
+    if (data.lastUsed){
+        loadChat(data.lastUsed, true)
     }
     else{
         createNewChat()
     }
 
-    let i = 0
     data.chats.forEach(chat => {
-        if (i == 0){
+        if (chat.id == data.lastUsed.id){
             let elem = sidebarNewChat(chat.name, chat.id)
             elem.classList.add("selected")
         } else{
             sidebarNewChat(chat.name, chat.id)
         }
-        i++
     });
 })
 

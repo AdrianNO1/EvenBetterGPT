@@ -33,7 +33,7 @@ let md = window.markdownit({
     highlight: function (str, lang) {
         if (lang && hljs.getLanguage(lang)) {
             try {
-                return '<pre class="hljs"><code>' +
+                return '<pre class="hljs"><code language="' + lang + '">' +
                        hljs.highlight(str, { language: lang, ignoreIllegals: true }).value +
                        '</code></pre>';
             } catch (__) {}
@@ -55,37 +55,62 @@ function copyCode(button){
     button.querySelector(".copyButtonOk").style.display = "block"
 }
 
-function messageToHTML(content){
-    let temp = document.createElement("div")
-    temp.innerHTML = md.render(content)
+function messageToHTML(content) {
+    const lines = content.split('\n');
+    let inCodeBlock = false;
+    let unclosedBlockIndex = -1;
+    
+    for (let i = 0; i < lines.length; i++) {
+        if (lines[i].trim().startsWith('```')) {
+            if (inCodeBlock) {
+                inCodeBlock = false;
+                unclosedBlockIndex = -1;
+            } else {
+                inCodeBlock = true;
+                unclosedBlockIndex = i;
+            }
+        }
+    }
+    
+    const unclosedCodeBlockString = "mpw3iiulu392pjeqbte7gwtozvo7xddznv"
+    if (inCodeBlock && unclosedBlockIndex !== -1) {
+        lines[unclosedBlockIndex] = unclosedCodeBlockString + "\n" + lines[unclosedBlockIndex];
+    }
+    
+    content = lines.join('\n');
+
+    let temp = document.createElement("div");
+    temp.innerHTML = md.render(content);
 
     temp.querySelectorAll("code").forEach(code => {
-        if (code.parentElement.classList.contains("hljs")){
-            let newElem = document.createElement("div")
+        if (code.parentElement.classList.contains("hljs")) {
+            let newElem = document.createElement("div");
+            let language = code.getAttribute("language") ?? "unknown";
+            let isUnclosed = code.parentElement.previousElementSibling && code.parentElement.previousElementSibling.innerText === unclosedCodeBlockString;
+            if (isUnclosed) {
+                code.parentElement.previousElementSibling.remove();
+            }
             newElem.innerHTML = `
             <div class="codeCopyBlock">
-                <p>python</p>
+                <p>${language}</p>
                 <button class="copyButton" onmousedown="copyCode(this)" ontouchstart="copyCode(this)">
+                    ${isUnclosed ? '<svg class="unfinishedCodeBlockIcon" fill="currentColor" height="24px" width="24px" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 128.00 128.00" xml:space="preserve" transform="rotate(0)matrix(1, 0, 0, 1, 0, 0)" stroke="#000000" stroke-width="0.00128"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <g> <circle cx="39.2" cy="17.9" r="12.6"></circle> <path d="M78.6,70.2l-21.2,0l-5.7-28.4c-3.4-14.8-24.2-10.4-22,4.1l6.6,33c1,5,5,9.3,11.3,9.3h27.1c0,0,0,21.2,0,30 c0,9.5,13.3,9.5,13.3,0.2V79.7C88,75.1,84.8,70.2,78.6,70.2z"></path> <path d="M64.7,90.6H46.9c-6.4,0-11.8-3.8-13.4-11l-5.8-28.2c-1.4-6.9-11.1-4.6-9.8,2.1L24,82.9c2.5,11,11.9,18.1,21.4,18.1h19.5 C71.7,101,71.7,90.6,64.7,90.6z"></path> <path d="M91.1,3.9c-11.2,0-20.3,9.1-20.3,20.3c0,11.2,9.1,20.3,20.3,20.3c11.2,0,20.3-9.1,20.3-20.3C111.4,13.1,102.3,3.9,91.1,3.9 z M91.1,40.7c-9.1,0-16.5-7.4-16.5-16.5c0-9.1,7.4-16.5,16.5-16.5c9.1,0,16.5,7.4,16.5,16.5C107.5,33.3,100.1,40.7,91.1,40.7z"></path> <path d="M99.5,20l-8,3.6v-9.4c0-1.5-2.2-1.4-2.2,0l0,11.3c0,0.8,0.9,1.5,1.7,1l9.4-4.5C101.7,21.3,100.9,19.3,99.5,20z"></path> </g> </g></svg>' : ''}
                     <svg class="copyButtonIcon" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
                     <svg class="copyButtonOk" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><polyline points="20 6 9 17 4 12"></polyline></svg>
                     <p>Copy code</p>
                 </button>
-            </div>`
-            code.parentElement.parentElement.insertBefore(newElem, code.parentElement)
-            code.parentElement.classList.add("codeBlock")
+            </div>`;
+            code.parentElement.parentElement.insertBefore(newElem, code.parentElement);
+            code.parentElement.classList.add("codeBlock");
+            if (isUnclosed) {
+                code.parentElement.classList.add("unclosed-block");
+            }
         }
-    })
-    
-    return temp.innerHTML
-
-    return `<p>${content.replace("\n", "<br><br>")}</p>`
-    total = ""
-    
-    content.split("\n").forEach(part => {
-        total += `<p>${(part.trim().length == 0 ? "<br>" : part)}</p>`
     });
-    return total
+    
+    return temp.innerHTML;
 }
+
 
 function utilityBack(button){
     let obj = button.parentElement.parentElement.parentElement
@@ -205,6 +230,33 @@ function utilityCopy(button){
     }
 }
 
+function utilityCache(button){
+    let obj = button.parentElement.parentElement.parentElement
+    let node = messagesTree.getNodeFromIndex(obj.messageIndex)
+    if (typeof node.message.content == "string"){
+        node.message.content = [{"type": "text", "text": node.message.content, "cache_control": {"type": "ephemeral"}}]
+        console.log(node.message.content)
+        console.log("heaaaa")
+    } else {
+        node.message.content[0].cache_control = {"type": "ephemeral"}
+        console.log("he")
+    }
+    obj.querySelector(".cache").style.display = "none"
+    obj.querySelector(".cacheRemove").style.display = "block"
+}
+
+function utilityCacheRemove(button){
+    let obj = button.parentElement.parentElement.parentElement
+    let node = messagesTree.getNodeFromIndex(obj.messageIndex)
+    if (typeof node.message.content != "string"){
+        delete node.message.content[0].cache_control
+    } else {
+        alert("Tried to remove cache control from a string message")
+    }
+    obj.querySelector(".cache").style.display = "block"
+    obj.querySelector(".cacheRemove").style.display = "none"
+}
+
 function utilityDelete(button){
     let obj = button.parentElement.parentElement.parentElement
 
@@ -273,10 +325,10 @@ function utilityEdit(button){
         imagesHTML += img.outerHTML
     })
     if (typeof messages[obj.messageIndex].content != "string"){
-        obj.querySelector(".message").innerHTML = "<pre>" + messages[obj.messageIndex].content[0].text + "</pre>" + imagesHTML
+        obj.querySelector(".message").innerHTML = "<pre class='messagePreTag'>" + messages[obj.messageIndex].content[0].text + "</pre>" + imagesHTML
     }
     else{
-        obj.querySelector(".message").innerHTML = "<pre>" + messages[obj.messageIndex].content + "</pre>" + imagesHTML
+        obj.querySelector(".message").innerHTML = "<pre class='messagePreTag'>" + messages[obj.messageIndex].content + "</pre>" + imagesHTML
     }
     
     obj.querySelector(".message").contentEditable = true
@@ -475,6 +527,7 @@ function add_chat_message(content, user, images){
         messages[index].role = role
         messagesTree.updateTreant()
         updateTokenCosts()
+        saveChat()
     }
 
     if (index === 0 && user === "system" && content === ""){
@@ -906,7 +959,7 @@ async function getTokenCost(node){
 function updateTokenCosts(recursionNumber=0){
     let tokens = messagesTree.getMessagesTokens()
     if (tokens == undefined || tokens == null){
-        if (recursionNumber > 2){
+        if (recursionNumber > 20){
             alert("recursion limit when trying to get token costs.")
             return
         }
@@ -1388,7 +1441,6 @@ buttonLine.querySelectorAll(".btnContainer").forEach(button => {
     }
     button.onclick = function(event){
         event.stopPropagation()
-        console.log(event.target)
         if (button.isEqualNode(currentButton) && !event.target.classList.contains("btnNumber")){
             unselectButtonLine()
             return
@@ -1433,6 +1485,7 @@ let systemPrompt = `Loading...`
 
 templateContainer.firstElementChild.querySelector(".yes").style.display = "none";
 templateContainer.firstElementChild.querySelector(".no").style.display = "none";
+templateContainer.firstElementChild.querySelector(".cacheRemove").style.display = "none";
 
 let userTemplate = templateContainer.firstElementChild.cloneNode(true)
 let assistantTemplate = templateContainer.firstElementChild.cloneNode(true)
@@ -1480,7 +1533,6 @@ function selectChat(elem){
     .catch(error => {
         console.error(error);
     });
-
 }
 
 function sidebarNewChat(name, id, atStart=false){
@@ -1509,13 +1561,12 @@ function sidebarNewChat(name, id, atStart=false){
     return newElem
 }
 
-function loadChat(chat, initial_load=false){
+function loadChat(chat, initial_load=false, useLastUsedChat=false){
     currentChatId = chat.id
     let newObj = Flatted.parse(chat.messages)
-    if (initial_load){
-        console.log(newObj)
+    if (initial_load && !useLastUsedChat){
         if (newObj.currentNode.children.length === 0 && newObj.currentNode.message.role === "system" && newObj.currentNode.message.content === "" && newObj.currentNode.parent == newObj.root){
-            console.log("yes")
+            
         } else {
             createNewChat()
             return
@@ -1576,7 +1627,7 @@ fetch('/getchatlist', {
 .then(data => {
     defaultSettings = data.defaultSettings
     if (data.lastUsed){
-        loadChat(data.lastUsed, true)
+        loadChat(data.lastUsed, true, data.useLastUsedChat)
     }
     else{
         createNewChat()
@@ -1595,7 +1646,6 @@ fetch('/getchatlist', {
 let searchInput = document.querySelector(".searchBar").querySelector("input")
 searchInput.addEventListener("input", function(event){
     let query = event.target.value.toLowerCase()
-    console.log(query)
     
     fetch('/search', {
         method: 'POST',
@@ -1611,7 +1661,6 @@ searchInput.addEventListener("input", function(event){
         return response.json();
     })
     .then(data => {
-        console.log(data)
         const matches = data.matches
         let foundOne = false
         document.querySelectorAll(".sideBarChatSelectThing").forEach(elem => {

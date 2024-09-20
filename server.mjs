@@ -54,8 +54,45 @@ async function createNewChat(name) {
     data.createdAt = new Date().toISOString();
     data.id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
-    data.messages = `[{"root":"1","currentNode":"2","nodeIds":"3"},{"message":null,"id":"4","parent":null,"children":"5","previouslySelectedChild":"2","isRoot":true,"tokens":0},{"message":"6","id":"7","parent":"1","children":"8","previouslySelectedChild":null,"tokens":12},{"1714729139792bee7975b68117":"2"},"root",["2"],{"role":"9","content":"10"},"1714729139792bee7975b68117",[],"system","${data.chatSettings.systemPrompt}"]`;
-    delete data.chatSettings.systemPrompt;
+    data.messages = JSON.stringify([
+        {
+          "root": "1",
+          "currentNode": "2",
+          "nodeIds": "3"
+        },
+        {
+          "message": null,
+          "id": "4",
+          "parent": null,
+          "children": "5",
+          "previouslySelectedChild": "2",
+          "isRoot": true,
+          "tokens": 0
+        },
+        {
+          "message": "6",
+          "id": "7",
+          "parent": "1",
+          "children": "8",
+          "previouslySelectedChild": null,
+          "tokens": 12
+        },
+        {
+          "1714729139792bee7975b68117": "2"
+        },
+        "root",
+        ["2"],
+        {
+          "role": "9",
+          "content": "10"
+        },
+        "1714729139792bee7975b68117",
+        [],
+        "system",
+        data.chatSettings.systemPrompt
+      ]);
+
+      delete data.chatSettings.systemPrompt;
 
     if (name) {
         data.name = name;
@@ -80,7 +117,7 @@ async function createNewChat(name) {
 }
 
 // Wait 1 second
-await new Promise(resolve => setTimeout(resolve, 1000));
+await new Promise(resolve => setTimeout(resolve, 1000)); // why the fuck did i add this
 
 const allChats = await getAllChats();
 
@@ -297,6 +334,7 @@ app.post('/getchatlist', async (req, res) => {
             await writeToFile(`debug\\${currentTimeWithMilliseconds.replace(/:/g, '-')}.json`, JSON.stringify({ lastusederror: error.message }, null, 4));
         }
     }
+    data.useLastUsedChat = useLastUsedChat;
     data.lastUsed = lastUsed ? allChats.find(chat => chat.id === lastUsed.id) ?? allChats[0] : allChats[0];
     data.defaultSettings = JSON.parse(await fs.readFile(path.join(dirname, "settings.json"), 'utf8')).defaultChatSettings;
     res.json(data);
@@ -394,13 +432,27 @@ app.post('/submit', async (req, res) => {
     console.log('Received:', req.body);
     const chatId = req.body.chatId;
     const settings = req.body.settings;
+    const isClaude = settings.model.toLowerCase().includes('claude')
     let messagesTree = req.body.messagesTree;
     let messages = req.body.messages;
     if (messages.length > 0 && messages[0].role === "system" && messages[0].content === "") {
         console.log("did stuff");
         messages.shift();
     }
+    let systemMessage = undefined;
+    if (isClaude && messages.length > 0 && messages[0].role === "system") {
+        systemMessage = messages[0].content
+        if (typeof systemMessage !== 'string') {
+            throw new Error("System message must be a string for claude");
+        }
+        messages.shift();
+        console.log("SYSTEM", systemMessage)
+    }
+
+    
     console.log(messages);
+    console.log(messages[0].content)
+    console.log(messages[0].content.cache_control)
 
     const how_often_write = 1000;
     let fileData;
@@ -409,7 +461,7 @@ app.post('/submit', async (req, res) => {
         const startTime = new Date().getTime();
 
         let completion;
-        if (settings.model.toLowerCase().includes('claude')) {
+        if (isClaude) {
             // loop through messages and check if content is a list
             for (let i = 0; i < messages.length; i++) {
                 if (typeof messages[i].content !== 'string') {
@@ -433,7 +485,8 @@ app.post('/submit', async (req, res) => {
                     }
                 }
             }
-            completion = await anthropic.messages.stream({
+            completion = await anthropic.beta.promptCaching.messages.stream({
+                system: systemMessage,
                 messages: messages,
                 model: settings.model,
                 max_tokens: settings.maxTokens,

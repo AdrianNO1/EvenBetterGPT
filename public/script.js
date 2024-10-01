@@ -85,7 +85,7 @@ function messageToHTML(content) {
     temp.querySelectorAll("code").forEach(code => {
         if (code.parentElement.classList.contains("hljs")) {
             let newElem = document.createElement("div");
-            let language = code.getAttribute("language") ?? "unknown";
+            let language = code.getAttribute("language") ?? "";
             let isUnclosed = code.parentElement.previousElementSibling && code.parentElement.previousElementSibling.innerText === unclosedCodeBlockString;
             if (isUnclosed) {
                 code.parentElement.previousElementSibling.remove();

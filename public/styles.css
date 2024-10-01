@@ -490,7 +490,7 @@ pre:empty {
     display: none;
 }
 
-.newChatButton, .searchBar, .opensettings, .feedback, .videos{
+.newChatButton, .searchBar, .opensettings{
     background-color: transparent;
     outline: none;
     text-align: center;
@@ -502,7 +502,7 @@ pre:empty {
     height: 45px;
 }
 
-.opensettings, .feedback, .videos{
+.opensettings{
     width: 100%;
     border-radius: 0;
     margin: 0;
@@ -511,20 +511,9 @@ pre:empty {
     cursor: pointer;
 }
 
-.opensettings svg, .feedback svg, .videos svg{
+.opensettings svg{
     width: 16px;
     margin-right: 10px;
-}
-
-.feedback svg{
-    width: 20px;
-    margin-right: 8px;
-    margin-left: -2px;
-}
-
-.videos svg{
-    width: 20px;
-    margin-right: 6px;
 }
 
 .newChatButton{

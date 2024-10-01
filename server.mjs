@@ -211,7 +211,7 @@ function numTokensFromMessage(message, model = "gpt-3.5-turbo-0301") {
         numTokens += 4; // every message follows <im_start>{role/name}\n{content}<im_end>\n
         for (const [key, value] of Object.entries(message)) {
             if (typeof value !== 'string') {
-                numTokens += encoding.encode(value[0].text).length;
+                numTokens += encoding.encode(value[0].text.split("<|endoftext|>").join("EOF")).length;
                 value.slice(1).forEach(item => {
                     console.log("AA", item);
                     let base64 = item.image_url.url;
@@ -222,7 +222,7 @@ function numTokensFromMessage(message, model = "gpt-3.5-turbo-0301") {
                     console.log(numTokens);
                 });
             } else {
-                numTokens += encoding.encode(value).length;
+                numTokens += encoding.encode(value.split("<|endoftext|>").join("EOF")).length;
             }
             if (key === "name") { // if there's a name, the role is omitted
                 numTokens -= 1; // role is always required and always 1 token
@@ -615,6 +615,6 @@ app.post('/submit', async (req, res) => {
 });
 
 // Start the server
-app.listen(port, 'localhost', () => {
+app.listen(port, () => {
     console.log(`Server listening at http://localhost:${port}`);
 });

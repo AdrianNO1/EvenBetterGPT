@@ -7,8 +7,18 @@ import Anthropic from '@anthropic-ai/sdk';
 import { promises as fs } from 'fs';
 import { parse, stringify } from 'flatted';
 import tiktoken from 'tiktoken';
-import Canvas from 'canvas';
 import pQueue from 'p-queue';
+import sizeOf from 'image-size';
+import { Buffer } from 'buffer';
+
+function getImageDimensions(base64) {
+    // Remove data URL prefix if present
+    const base64String = base64.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64String, 'base64');
+    const dimensions = sizeOf(buffer);
+    return { width: dimensions.width, height: dimensions.height };
+}
+
 
 const useLastUsedChat = false;
 
@@ -186,12 +196,6 @@ function calculateImageTokenCost(width, height, detail) {
     } else {
         throw new Error('Invalid detail level. Please choose "low" or "high".');
     }
-}
-
-function getImageDimensions(base64) {
-    const img = new Canvas.Image();
-    img.src = base64;
-    return { width: img.width, height: img.height };
 }
 
 function numTokensFromMessage(message, model = "gpt-3.5-turbo-0301") {
@@ -583,6 +587,7 @@ app.post('/submit', async (req, res) => {
     } catch (error) {
         console.error('Error:', error);
         console.log(error.message)
+        // {"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}               }
 
         setTimeout(async function() {
             fileData.messages = stringify(messagesTree);

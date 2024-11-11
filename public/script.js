@@ -1290,18 +1290,50 @@ let defaultLimits = {
     "frequencyPenalty": 2
 }
 
+
+const m1 = 1000000
+
 let gpt4ominiLimits = JSON.parse(JSON.stringify(defaultLimits))
 gpt4ominiLimits["maxTokens"] = 16384
 
-let m1 = 1000000
+let gpt4oLatestCosts = {"input": 2.5/m1, "output": 10/m1}
+
 let modelsSettings = {
-    "claude-3-5-sonnet-20240620": {
+    "claude-3-5-sonnet-20241022": {
         "limits": defaultLimits,
         "tokenCost": {"input": 3/m1, "output": 15/m1}
     },
     "gpt-4o": {
         "limits": defaultLimits,
-        "tokenCost": {"input": 5/m1, "output": 15/m1}
+        "tokenCost": gpt4oLatestCosts
+    },
+    "ft:gpt-4o-2024-08-06:aivg-x:schooldatav1:A4RqXyXA": {
+        "limits": defaultLimits,
+        "tokenCost": gpt4oLatestCosts
+    },
+    "ft:gpt-4o-2024-08-06:aivg-x:schooldatav1v5:ANzPxLBn": {
+        "limits": defaultLimits,
+        "tokenCost": gpt4oLatestCosts
+    },
+    "ft:gpt-4o-2024-08-06:aivg-x:schooldatav1v4:ANgYSlT0": {
+        "limits": defaultLimits,
+        "tokenCost": gpt4oLatestCosts
+    },
+    "ft:gpt-4o-2024-08-06:aivg-x:schooldatav1v3:ANf5yWBv": {
+        "limits": defaultLimits,
+        "tokenCost": gpt4oLatestCosts
+    },
+    "ft:gpt-4o-2024-08-06:aivg-x:schooldatav2:A61CXA7Z": {
+        "limits": defaultLimits,
+        "tokenCost": gpt4oLatestCosts
+    },
+    "ft:gpt-4o-2024-08-06:aivg-x:schooldatav3:A99ohk3E": {
+        "limits": defaultLimits,
+        "tokenCost": gpt4oLatestCosts
+    },
+    "ft:gpt-4o-2024-08-06:aivg-x:schooldatav4-sp:AIZhUK5g": {
+        "limits": defaultLimits,
+        "tokenCost": gpt4oLatestCosts
     },
     "ft:gpt-4o-mini-2024-07-18:aivg-x:myreddit:9pfSQHgA": {
         "limits": gpt4ominiLimits,
@@ -1326,6 +1358,10 @@ let modelsSettings = {
     "gpt-3.5-turbo": {
         "limits": defaultLimits,
         "tokenCost": {"input": 0.5/m1, "output": 1.5/m1}
+    },
+    "claude-3-5-sonnet-20240620": {
+        "limits": defaultLimits,
+        "tokenCost": {"input": 3/m1, "output": 15/m1}
     },
     "claude-3-opus-20240229": {
         "limits": defaultLimits,
@@ -1711,4 +1747,29 @@ newNode.tokens = 0
 
 window.onbeforeunload = function(){
     saveSettings()
+}
+
+function øyvindExport(){
+    let exportedText = ""
+    exportedText += `Model: ${settings["model"]}
+Temperature: ${settings["temperature"]}
+Top P: ${settings["topP"]}\n\n\n`
+
+    for (let i = 0; i < messages.length; i++){
+        let message = messages[i]
+        if (!message.content){
+            continue
+        }
+        let content = message.content
+        if (typeof message.content != "string"){
+            content = message.content[0].text
+        }
+        let role = message.role.charAt(0).toUpperCase() + message.role.slice(1)
+        exportedText += `${role}:\n${content}`
+        if (i != messages.length - 1){
+            exportedText += "\n\n\n-----\n\n\n"
+        }
+    }
+    setTimeout(async() => {await window.navigator.clipboard.writeText(exportedText); console.log("text copied")}, 1500)
+    console.log(exportedText)
 }

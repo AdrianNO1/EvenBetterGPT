@@ -3,7 +3,8 @@
 /chats/*
 /feedback/*
 /debug/*
-test.py
+*.py
+test.txt
 /public/videos
 /public/patricklogo.png
 /public/feedback.html

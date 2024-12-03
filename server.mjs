@@ -7,8 +7,18 @@ import Anthropic from '@anthropic-ai/sdk';
 import { promises as fs } from 'fs';
 import { parse, stringify } from 'flatted';
 import tiktoken from 'tiktoken';
-import Canvas from 'canvas';
 import pQueue from 'p-queue';
+import sizeOf from 'image-size';
+import { Buffer } from 'buffer';
+
+function getImageDimensions(base64) {
+    // Remove data URL prefix if present
+    const base64String = base64.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64String, 'base64');
+    const dimensions = sizeOf(buffer);
+    return { width: dimensions.width, height: dimensions.height };
+}
+
 
 const useLastUsedChat = false;
 
@@ -188,12 +198,6 @@ function calculateImageTokenCost(width, height, detail) {
     }
 }
 
-function getImageDimensions(base64) {
-    const img = new Canvas.Image();
-    img.src = base64;
-    return { width: img.width, height: img.height };
-}
-
 function numTokensFromMessage(message, model = "gpt-3.5-turbo-0301") {
     let encoding;
     try {
@@ -207,7 +211,7 @@ function numTokensFromMessage(message, model = "gpt-3.5-turbo-0301") {
         numTokens += 4; // every message follows <im_start>{role/name}\n{content}<im_end>\n
         for (const [key, value] of Object.entries(message)) {
             if (typeof value !== 'string') {
-                numTokens += encoding.encode(value[0].text.split("<|endoftext|>").join("EOF")).length;
+                numTokens += encoding.encode(value[0].text.split("<1|endoftext|1>").join("EOF")).length;
                 value.slice(1).forEach(item => {
                     let base64 = item.image_url.url;
                     // get the image dimensions from the base64 string
@@ -215,7 +219,7 @@ function numTokensFromMessage(message, model = "gpt-3.5-turbo-0301") {
                     numTokens += calculateImageTokenCost(width, height, "high");
                 });
             } else {
-                numTokens += encoding.encode(value.split("<|endoftext|>").join("EOF")).length;
+                numTokens += encoding.encode(value.split("<1|endoftext|1>").join("EOF")).length;
             }
             if (key === "name") { // if there's a name, the role is omitted
                 numTokens -= 1; // role is always required and always 1 token
@@ -490,7 +494,7 @@ app.post('/submit', async (req, res) => {
             completion = await openai.chat.completions.create({
                 messages: messages,
                 model: settings.model,
-                max_tokens: settings.maxTokens,
+                max_completion_tokens: settings.maxTokens,
                 temperature: settings.temperature,
                 top_p: settings.topP,
                 frequency_penalty: settings.frequencyPenalty,
@@ -583,6 +587,7 @@ app.post('/submit', async (req, res) => {
     } catch (error) {
         console.error('Error:', error);
         console.log(error.message)
+        // {"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}               }
 
         setTimeout(async function() {
             fileData.messages = stringify(messagesTree);

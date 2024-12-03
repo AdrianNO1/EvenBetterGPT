@@ -1290,10 +1290,17 @@ let defaultLimits = {
     "frequencyPenalty": 2
 }
 
+
+const m1 = 1000000
+
 let gpt4ominiLimits = JSON.parse(JSON.stringify(defaultLimits))
 gpt4ominiLimits["maxTokens"] = 16384
 
-let m1 = 1000000
+let o1Limits = JSON.parse(JSON.stringify(defaultLimits))
+o1Limits["maxTokens"] = 32768
+
+let gpt4oLatestCosts = {"input": 2.5/m1, "output": 10/m1}
+
 let modelsSettings = {
     "claude-3-5-sonnet-20241022": {
         "limits": defaultLimits,
@@ -1301,7 +1308,47 @@ let modelsSettings = {
     },
     "gpt-4o": {
         "limits": defaultLimits,
-        "tokenCost": {"input": 5/m1, "output": 15/m1}
+        "tokenCost": gpt4oLatestCosts
+    },
+    "o1": {
+        "limits": defaultLimits,
+        "tokenCost": {"input": 15/m1, "output": 60/m1}
+    },
+    "o1-mini": {
+        "limits": defaultLimits,
+        "tokenCost": {"input": 3/m1, "output": 12/m1}
+    },
+    "o1-preview": {
+        "limits": defaultLimits,
+        "tokenCost": {"input": 15/m1, "output": 60/m1}
+    },
+    "ft:gpt-4o-2024-08-06:aivg-x:schooldatav1:A4RqXyXA": {
+        "limits": defaultLimits,
+        "tokenCost": gpt4oLatestCosts
+    },
+    "ft:gpt-4o-2024-08-06:aivg-x:schooldatav1v5:ANzPxLBn": {
+        "limits": defaultLimits,
+        "tokenCost": gpt4oLatestCosts
+    },
+    "ft:gpt-4o-2024-08-06:aivg-x:schooldatav1v4:ANgYSlT0": {
+        "limits": defaultLimits,
+        "tokenCost": gpt4oLatestCosts
+    },
+    "ft:gpt-4o-2024-08-06:aivg-x:schooldatav1v3:ANf5yWBv": {
+        "limits": defaultLimits,
+        "tokenCost": gpt4oLatestCosts
+    },
+    "ft:gpt-4o-2024-08-06:aivg-x:schooldatav2:A61CXA7Z": {
+        "limits": defaultLimits,
+        "tokenCost": gpt4oLatestCosts
+    },
+    "ft:gpt-4o-2024-08-06:aivg-x:schooldatav3:A99ohk3E": {
+        "limits": defaultLimits,
+        "tokenCost": gpt4oLatestCosts
+    },
+    "ft:gpt-4o-2024-08-06:aivg-x:schooldatav4-sp:AIZhUK5g": {
+        "limits": defaultLimits,
+        "tokenCost": gpt4oLatestCosts
     },
     "ft:gpt-4o-mini-2024-07-18:aivg-x:myreddit:9pfSQHgA": {
         "limits": gpt4ominiLimits,
@@ -1717,129 +1764,53 @@ window.onbeforeunload = function(){
     saveSettings()
 }
 
+function øyvindExport(){
+    let exportedText = ""
+    exportedText += `Model: ${settings["model"]}
+Temperature: ${settings["temperature"]}
+Top P: ${settings["topP"]}\n\n\n`
 
-
-
-
-
-
-
-
-
-
-
-class TimeTracker {
-    constructor() {
-        this.startTime = null;
-        this.totalTime = 0;
-        this.isTracking = false;
-        this.currentDate = new Date().toLocaleDateString();
-    }
-
-    // Start tracking time when tab becomes active
-    startTracking() {
-        if (!this.isTracking) {
-            this.startTime = new Date();
-            this.isTracking = true;
+    for (let i = 0; i < messages.length; i++){
+        let message = messages[i]
+        if (!message.content){
+            continue
+        }
+        let content = message.content
+        if (typeof message.content != "string"){
+            content = message.content[0].text
+        }
+        let role = message.role.charAt(0).toUpperCase() + message.role.slice(1)
+        exportedText += `${role}:\n${content}`
+        if (i != messages.length - 1){
+            exportedText += "\n\n\n-----\n\n\n"
         }
     }
-
-    // Stop tracking time when tab becomes inactive
-    stopTracking() {
-        if (this.isTracking) {
-            const endTime = new Date();
-            this.totalTime += endTime - this.startTime;
-            this.isTracking = false;
-            this.saveTime();
-        }
-    }
-
-    // Save time to localStorage
-    saveTime() {
-        const timeData = JSON.parse(localStorage.getItem('websiteTimeTracker') || '{}');
-        const currentDate = new Date().toLocaleDateString();
-        
-        timeData[currentDate] = (timeData[currentDate] || 0) + this.totalTime;
-        localStorage.setItem('websiteTimeTracker', JSON.stringify(timeData));
-    }
-
-    // Get time spent for a specific date
-    getTimeForDate(date) {
-        const timeData = JSON.parse(localStorage.getItem('websiteTimeTracker') || '{}');
-        return timeData[date] || 0;
-    }
-
-    // Format milliseconds to readable time
-    formatTime(milliseconds) {
-        const seconds = Math.floor(milliseconds / 1000);
-        const minutes = Math.floor(seconds / 60);
-        const hours = Math.floor(minutes / 60);
-
-        return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
-    }
+    setTimeout(async() => {await window.navigator.clipboard.writeText(exportedText); console.log("text copied")}, 1500)
+    console.log(exportedText)
 }
 
-// Create tracker instance
-const tracker = new TimeTracker();
+function toggleMobileMenu() {
+    const sideBar = document.querySelector('.sideBar');
+    sideBar.classList.toggle('active');
+}
 
-// Add event listeners for visibility and focus changes
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-        tracker.stopTracking();
-    } else {
-        tracker.startTracking();
+// Close mobile menu when clicking outside
+document.addEventListener('click', (e) => {
+    const sideBar = document.querySelector('.sideBar');
+    const mobileMenuToggle = document.querySelector('.mobileMenuToggle');
+    
+    if (window.innerWidth <= 768 && 
+        !sideBar.contains(e.target) && 
+        !mobileMenuToggle.contains(e.target) && 
+        sideBar.classList.contains('active')) {
+        sideBar.classList.remove('active');
     }
 });
 
-window.addEventListener('focus', () => {
-    tracker.startTracking();
-});
-
-window.addEventListener('blur', () => {
-    tracker.stopTracking();
-});
-
-// Start tracking when page loads
-tracker.startTracking();
-
-// Save time before page unloads
-window.addEventListener('beforeunload', () => {
-    tracker.stopTracking();
-});
-
-// Check for date change
-setInterval(() => {
-    const currentDate = new Date().toLocaleDateString();
-    if (currentDate !== tracker.currentDate) {
-        tracker.stopTracking();
-        tracker.totalTime = 0;
-        tracker.currentDate = currentDate;
-        tracker.startTracking();
+// Handle window resize
+window.addEventListener('resize', () => {
+    const sideBar = document.querySelector('.sideBar');
+    if (window.innerWidth > 768) {
+        sideBar.classList.remove('active');
     }
-}, 1000);
-
-// Example: Display today's time spent
-function displayTimeSpent() {
-    const today = new Date().toLocaleDateString();
-    const timeSpent = tracker.getTimeForDate(today);
-    console.log(`Time spent today: ${tracker.formatTime(timeSpent)}`);
-}
-
-
-
-function getTimeData() {
-    displayTimeSpent()
-    
-    const allData = JSON.parse(localStorage.getItem('websiteTimeTracker') || '{}');
-    const sortedDates = Object.keys(allData).sort((a, b) => new Date(a) - new Date(b));
-    const formattedData = {};
-    
-    sortedDates.forEach(date => {
-        formattedData[date] = tracker.formatTime(allData[date]);
-    });
-    
-    console.log('Formatted tracking data:', formattedData);
-}
-
-
-getTimeData()
+});

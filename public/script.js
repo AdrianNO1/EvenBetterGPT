@@ -1788,3 +1788,29 @@ Top P: ${settings["topP"]}\n\n\n`
     setTimeout(async() => {await window.navigator.clipboard.writeText(exportedText); console.log("text copied")}, 1500)
     console.log(exportedText)
 }
+
+function toggleMobileMenu() {
+    const sideBar = document.querySelector('.sideBar');
+    sideBar.classList.toggle('active');
+}
+
+// Close mobile menu when clicking outside
+document.addEventListener('click', (e) => {
+    const sideBar = document.querySelector('.sideBar');
+    const mobileMenuToggle = document.querySelector('.mobileMenuToggle');
+    
+    if (window.innerWidth <= 768 && 
+        !sideBar.contains(e.target) && 
+        !mobileMenuToggle.contains(e.target) && 
+        sideBar.classList.contains('active')) {
+        sideBar.classList.remove('active');
+    }
+});
+
+// Handle window resize
+window.addEventListener('resize', () => {
+    const sideBar = document.querySelector('.sideBar');
+    if (window.innerWidth > 768) {
+        sideBar.classList.remove('active');
+    }
+});

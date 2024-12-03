@@ -783,3 +783,113 @@ pre{
 }
 
 pre code.hljs{display:block;overflow-x:auto;padding:1em}code.hljs{padding:3px 5px}.hljs{background:#f3f3f3;color:#444}.hljs-comment{color:#697070}.hljs-punctuation,.hljs-tag{color:#444a}.hljs-tag .hljs-attr,.hljs-tag .hljs-name{color:#444}.hljs-attribute,.hljs-doctag,.hljs-keyword,.hljs-meta .hljs-keyword,.hljs-name,.hljs-selector-tag{font-weight:700}.hljs-deletion,.hljs-number,.hljs-quote,.hljs-selector-class,.hljs-selector-id,.hljs-string,.hljs-template-tag,.hljs-type{color:#800}.hljs-section,.hljs-title{color:#800;font-weight:700}.hljs-link,.hljs-operator,.hljs-regexp,.hljs-selector-attr,.hljs-selector-pseudo,.hljs-symbol,.hljs-template-variable,.hljs-variable{color:#ab5656}.hljs-literal{color:#695}.hljs-addition,.hljs-built_in,.hljs-bullet,.hljs-code{color:#397300}.hljs-meta{color:#1f7199}.hljs-meta .hljs-string{color:#38a}.hljs-emphasis{font-style:italic}.hljs-strong{font-weight:700}
+
+/* Mobile Responsive Styles */
+@media screen and (max-width: 768px) {
+    body {
+        overflow-x: hidden;
+    }
+
+    .sideBar {
+        position: fixed;
+        left: -100%;
+        top: 0;
+        width: 80%;
+        height: 100vh;
+        z-index: 1000;
+        transition: left 0.3s ease;
+        background-color: rgb(113, 114, 125);
+    }
+
+    .sideBar.active {
+        left: 0;
+    }
+
+    .chatArea {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .buttonLine {
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    .btnContainer {
+        width: calc(50% - 15px);
+        margin: 5px;
+    }
+
+    #chatContainer {
+        margin: 10px;
+        width: calc(100% - 20px);
+        max-width: none;
+    }
+
+    .inputArea {
+        margin: 10px;
+        width: calc(100% - 20px);
+    }
+
+    .messageContainer {
+        padding: 10px 5px;
+    }
+
+    .utilityButtonContainer {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .buttonGroup {
+        width: 100%;
+        justify-content: space-around;
+    }
+
+    /* Mobile Menu Toggle Button */
+    .mobileMenuToggle {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        z-index: 1001;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgb(48, 204, 165);
+        border-radius: 5px;
+    }
+
+    .mobileMenuToggle svg {
+        width: 24px;
+        height: 24px;
+        color: white;
+    }
+
+    /* Hide mobile menu toggle on desktop */
+    @media screen and (min-width: 769px) {
+        .mobileMenuToggle {
+            display: none;
+        }
+    }
+}
+
+/* Tablet Responsive Styles */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+    .buttonLine {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .btnContainer {
+        width: calc(33.33% - 20px);
+        margin: 5px;
+    }
+
+    #chatContainer {
+        margin: 15px;
+        max-width: none;
+    }
+}

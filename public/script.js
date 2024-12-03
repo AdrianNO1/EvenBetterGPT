@@ -1296,6 +1296,9 @@ const m1 = 1000000
 let gpt4ominiLimits = JSON.parse(JSON.stringify(defaultLimits))
 gpt4ominiLimits["maxTokens"] = 16384
 
+let o1Limits = JSON.parse(JSON.stringify(defaultLimits))
+o1Limits["maxTokens"] = 32768
+
 let gpt4oLatestCosts = {"input": 2.5/m1, "output": 10/m1}
 
 let modelsSettings = {
@@ -1306,6 +1309,18 @@ let modelsSettings = {
     "gpt-4o": {
         "limits": defaultLimits,
         "tokenCost": gpt4oLatestCosts
+    },
+    "o1": {
+        "limits": defaultLimits,
+        "tokenCost": {"input": 15/m1, "output": 60/m1}
+    },
+    "o1-mini": {
+        "limits": defaultLimits,
+        "tokenCost": {"input": 3/m1, "output": 12/m1}
+    },
+    "o1-preview": {
+        "limits": defaultLimits,
+        "tokenCost": {"input": 15/m1, "output": 60/m1}
     },
     "ft:gpt-4o-2024-08-06:aivg-x:schooldatav1:A4RqXyXA": {
         "limits": defaultLimits,

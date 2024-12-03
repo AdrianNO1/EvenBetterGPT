@@ -363,6 +363,7 @@ pre:empty {
 .chatArea{
     margin-left: 230px;
     margin-bottom: 500px;
+    margin-top: -20px;
 }
 
 .sideBar{

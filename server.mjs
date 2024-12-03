@@ -478,7 +478,7 @@ app.post('/submit', async (req, res) => {
                     }
                 }
             }
-            completion = await anthropic.beta.promptCaching.messages.stream({
+            completion = await anthropic.messages.stream({
                 system: systemMessage,
                 messages: messages,
                 model: settings.model,

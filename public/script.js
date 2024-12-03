@@ -1295,7 +1295,7 @@ gpt4ominiLimits["maxTokens"] = 16384
 
 let m1 = 1000000
 let modelsSettings = {
-    "claude-3-5-sonnet-20240620": {
+    "claude-3-5-sonnet-20241022": {
         "limits": defaultLimits,
         "tokenCost": {"input": 3/m1, "output": 15/m1}
     },
@@ -1326,6 +1326,10 @@ let modelsSettings = {
     "gpt-3.5-turbo": {
         "limits": defaultLimits,
         "tokenCost": {"input": 0.5/m1, "output": 1.5/m1}
+    },
+    "claude-3-5-sonnet-20240620": {
+        "limits": defaultLimits,
+        "tokenCost": {"input": 3/m1, "output": 15/m1}
     },
     "claude-3-opus-20240229": {
         "limits": defaultLimits,
@@ -1712,3 +1716,130 @@ newNode.tokens = 0
 window.onbeforeunload = function(){
     saveSettings()
 }
+
+
+
+
+
+
+
+
+
+
+
+
+class TimeTracker {
+    constructor() {
+        this.startTime = null;
+        this.totalTime = 0;
+        this.isTracking = false;
+        this.currentDate = new Date().toLocaleDateString();
+    }
+
+    // Start tracking time when tab becomes active
+    startTracking() {
+        if (!this.isTracking) {
+            this.startTime = new Date();
+            this.isTracking = true;
+        }
+    }
+
+    // Stop tracking time when tab becomes inactive
+    stopTracking() {
+        if (this.isTracking) {
+            const endTime = new Date();
+            this.totalTime += endTime - this.startTime;
+            this.isTracking = false;
+            this.saveTime();
+        }
+    }
+
+    // Save time to localStorage
+    saveTime() {
+        const timeData = JSON.parse(localStorage.getItem('websiteTimeTracker') || '{}');
+        const currentDate = new Date().toLocaleDateString();
+        
+        timeData[currentDate] = (timeData[currentDate] || 0) + this.totalTime;
+        localStorage.setItem('websiteTimeTracker', JSON.stringify(timeData));
+    }
+
+    // Get time spent for a specific date
+    getTimeForDate(date) {
+        const timeData = JSON.parse(localStorage.getItem('websiteTimeTracker') || '{}');
+        return timeData[date] || 0;
+    }
+
+    // Format milliseconds to readable time
+    formatTime(milliseconds) {
+        const seconds = Math.floor(milliseconds / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+
+        return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+    }
+}
+
+// Create tracker instance
+const tracker = new TimeTracker();
+
+// Add event listeners for visibility and focus changes
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        tracker.stopTracking();
+    } else {
+        tracker.startTracking();
+    }
+});
+
+window.addEventListener('focus', () => {
+    tracker.startTracking();
+});
+
+window.addEventListener('blur', () => {
+    tracker.stopTracking();
+});
+
+// Start tracking when page loads
+tracker.startTracking();
+
+// Save time before page unloads
+window.addEventListener('beforeunload', () => {
+    tracker.stopTracking();
+});
+
+// Check for date change
+setInterval(() => {
+    const currentDate = new Date().toLocaleDateString();
+    if (currentDate !== tracker.currentDate) {
+        tracker.stopTracking();
+        tracker.totalTime = 0;
+        tracker.currentDate = currentDate;
+        tracker.startTracking();
+    }
+}, 1000);
+
+// Example: Display today's time spent
+function displayTimeSpent() {
+    const today = new Date().toLocaleDateString();
+    const timeSpent = tracker.getTimeForDate(today);
+    console.log(`Time spent today: ${tracker.formatTime(timeSpent)}`);
+}
+
+
+
+function getTimeData() {
+    displayTimeSpent()
+    
+    const allData = JSON.parse(localStorage.getItem('websiteTimeTracker') || '{}');
+    const sortedDates = Object.keys(allData).sort((a, b) => new Date(a) - new Date(b));
+    const formattedData = {};
+    
+    sortedDates.forEach(date => {
+        formattedData[date] = tracker.formatTime(allData[date]);
+    });
+    
+    console.log('Formatted tracking data:', formattedData);
+}
+
+
+getTimeData()

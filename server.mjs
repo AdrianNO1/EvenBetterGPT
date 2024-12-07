@@ -491,6 +491,9 @@ app.post('/submit', async (req, res) => {
                 top_p: settings.topP,
             });
         } else {
+            if (settings.model.toLowerCase().startsWith("o1")) {
+                settings.temperature = 1
+            }
             completion = await openai.chat.completions.create({
                 messages: messages,
                 model: settings.model,

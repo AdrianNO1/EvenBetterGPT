@@ -107,8 +107,11 @@ function messageToHTML(content) {
             }
         }
     });
+
+    console.log(temp.innerHTML)
+    const html = temp.innerHTML.replace(unclosedCodeBlockString, "");
     
-    return temp.innerHTML;
+    return html;
 }
 
 

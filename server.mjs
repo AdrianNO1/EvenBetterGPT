@@ -629,9 +629,11 @@ app.post('/submit', async (req, res) => {
         // {"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}               }
 
         setTimeout(async function() {
-            fileData.messages = stringify(messagesTree);
-            allChats[currentChatIndex].messages = fileData.messages;
-            await writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
+            if (fileData) {
+                fileData.messages = stringify(messagesTree);
+                allChats[currentChatIndex].messages = fileData.messages;
+                await writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
+            }
         }, how_often_write);
 
         if (!res.headersSent) {

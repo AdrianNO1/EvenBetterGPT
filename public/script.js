@@ -2,6 +2,8 @@ document.getElementsByClassName("inputArea")[0].addEventListener("mousedown", fu
     document.getElementById("input").focus();
 });
 
+document.getElementById("input").focus()
+
 function handleEnterSubmit(event) {
     if (!isGenerating){
         if (event.which === 13 && !event.shiftKey) {
@@ -962,7 +964,7 @@ async function getTokenCost(node){
 function updateTokenCosts(recursionNumber=0){
     let tokens = messagesTree.getMessagesTokens()
     if (tokens == undefined || tokens == null){
-        if (recursionNumber > 20){
+        if (recursionNumber > 100){
             alert("recursion limit when trying to get token costs.")
             return
         }
@@ -1293,6 +1295,17 @@ let defaultLimits = {
     "frequencyPenalty": 2
 }
 
+let highLimits = JSON.parse(JSON.stringify(defaultLimits))
+highLimits["maxTokens"] = 16384
+
+let midLimits = JSON.parse(JSON.stringify(defaultLimits))
+midLimits["maxTokens"] = 8192
+
+let veryHighLimits = JSON.parse(JSON.stringify(defaultLimits))
+veryHighLimits["maxTokens"] = 32768
+
+let ultraHighLimits = JSON.parse(JSON.stringify(defaultLimits))
+ultraHighLimits["maxTokens"] = 100000
 
 const m1 = 1000000
 
@@ -1306,67 +1319,79 @@ let gpt4oLatestCosts = {"input": 2.5/m1, "output": 10/m1}
 
 let modelsSettings = {
     "claude-3-5-sonnet-20241022": {
-        "limits": defaultLimits,
+        "limits": midLimits,
         "tokenCost": {"input": 3/m1, "output": 15/m1}
     },
     "gpt-4o": {
-        "limits": defaultLimits,
+        "limits": highLimits,
         "tokenCost": gpt4oLatestCosts
     },
+    "o3-mini": {
+        "limits": ultraHighLimits,
+        "tokenCost": {"input": 1.1/m1, "output": 4.4/m1}
+    },
     "o1": {
-        "limits": defaultLimits,
+        "limits": veryHighLimits,
+        "tokenCost": {"input": 15/m1, "output": 60/m1}
+    },
+    "deepseek-reasoner": {
+        "limits": midLimits,
         "tokenCost": {"input": 15/m1, "output": 60/m1}
     },
     "o1-mini": {
-        "limits": defaultLimits,
+        "limits": veryHighLimits,
         "tokenCost": {"input": 3/m1, "output": 12/m1}
     },
     "o1-preview": {
-        "limits": defaultLimits,
+        "limits": highLimits,
+        "tokenCost": {"input": 15/m1, "output": 60/m1}
+    },
+    "deepseek-chat": {
+        "limits": midLimits,
         "tokenCost": {"input": 15/m1, "output": 60/m1}
     },
     "ft:gpt-4o-2024-08-06:aivg-x:schooldatav1:A4RqXyXA": {
-        "limits": defaultLimits,
+        "limits": highLimits,
         "tokenCost": gpt4oLatestCosts
     },
     "ft:gpt-4o-2024-08-06:aivg-x:schooldatav1v5:ANzPxLBn": {
-        "limits": defaultLimits,
+        "limits": highLimits,
         "tokenCost": gpt4oLatestCosts
     },
     "ft:gpt-4o-2024-08-06:aivg-x:schooldatav1v4:ANgYSlT0": {
-        "limits": defaultLimits,
+        "limits": highLimits,
         "tokenCost": gpt4oLatestCosts
     },
     "ft:gpt-4o-2024-08-06:aivg-x:schooldatav1v3:ANf5yWBv": {
-        "limits": defaultLimits,
+        "limits": highLimits,
         "tokenCost": gpt4oLatestCosts
     },
     "ft:gpt-4o-2024-08-06:aivg-x:schooldatav2:A61CXA7Z": {
-        "limits": defaultLimits,
+        "limits": highLimits,
         "tokenCost": gpt4oLatestCosts
     },
     "ft:gpt-4o-2024-08-06:aivg-x:schooldatav3:A99ohk3E": {
-        "limits": defaultLimits,
+        "limits": highLimits,
         "tokenCost": gpt4oLatestCosts
     },
     "ft:gpt-4o-2024-08-06:aivg-x:schooldatav4-sp:AIZhUK5g": {
-        "limits": defaultLimits,
+        "limits": highLimits,
         "tokenCost": gpt4oLatestCosts
     },
     "ft:gpt-4o-mini-2024-07-18:aivg-x:myreddit:9pfSQHgA": {
-        "limits": gpt4ominiLimits,
+        "limits": highLimits,
         "tokenCost": {"input": 0.30/m1, "output": 1.2/m1}
     },
     "ft:gpt-4o-mini-2024-07-18:aivg-x:myredditmt:9phj3bla": {
-        "limits": gpt4ominiLimits,
+        "limits": highLimits,
         "tokenCost": {"input": 0.30/m1, "output": 1.2/m1}
     },
     "ft:gpt-4o-mini-2024-07-18:aivg-x:myredditmtv3:9rYg2hxk": {
-        "limits": gpt4ominiLimits,
+        "limits": highLimits,
         "tokenCost": {"input": 0.30/m1, "output": 1.2/m1}
     },
     "gpt-4o-mini": {
-        "limits": gpt4ominiLimits,
+        "limits": highLimits,
         "tokenCost": {"input": 0.15/m1, "output": 0.6/m1}
     },
     "gpt-4-turbo": {
@@ -1378,7 +1403,7 @@ let modelsSettings = {
         "tokenCost": {"input": 0.5/m1, "output": 1.5/m1}
     },
     "claude-3-5-sonnet-20240620": {
-        "limits": defaultLimits,
+        "limits": midLimits,
         "tokenCost": {"input": 3/m1, "output": 15/m1}
     },
     "claude-3-opus-20240229": {
@@ -1462,6 +1487,18 @@ function unselectStuff(param){
     }
 }
 
+function clampModelLimits(){
+    // let model = settings["model"]
+    // const settings2 = modelsSettings[model.trim()]
+    // let limits = settings2.limits
+    // console.log(model, settings2, limits, settings, modelsSettings)
+    // if (settings2["maxTokens"] > limits["maxTokens"]){
+    //     settings["maxTokens"] = limits["maxTokens"]
+    //     document.querySelector(".maxTokens").value = limits["maxTokens"]
+    // }
+    console.log("whatever this codebase is shit")
+}
+
 document.addEventListener("click", unselectStuff)
 
 buttonLine.querySelectorAll(".btnContainer").forEach(button => {
@@ -1490,6 +1527,7 @@ buttonLine.querySelectorAll(".btnContainer").forEach(button => {
     else{
         button.querySelector(".modelSelect").addEventListener("change", function(event){
             settings["model"] = event.target.value
+            clampModelLimits()
             updateTokenCosts()
         })
     }

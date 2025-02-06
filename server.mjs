@@ -27,6 +27,7 @@ let dirname = path.dirname(fileURLToPath(import.meta.url));
 const chatsPath = path.join(dirname, 'chats');
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEYt });
+const deepseek = new OpenAI({ apiKey: process.env.DEEPSEEK_API_KEY, baseURL: "https://api.deepseek.com" });
 const anthropic = new Anthropic({ apiKey: process.env.CLAUDE_API_KEY });
 
 const app = express();
@@ -44,6 +45,7 @@ const fileQueue = new pQueue({ concurrency: 1 });
 
 async function getAllChats() {
     let files = await fs.readdir(chatsPath);
+    files = files.filter(file => file.endsWith('.json'));
     let chats = await Promise.all(files.map(async file => {
         try {
             return JSON.parse(await fs.readFile(path.join(chatsPath, file), 'utf8'));
@@ -450,6 +452,9 @@ app.post('/submit', async (req, res) => {
     console.log(messages);
     console.log(messages[0].content)
     console.log(messages[0].content.cache_control)
+    if (messages[messages.length - 1].role == "assistant" && messages[messages.length - 1].content == "") {
+        messages.pop();
+    }
 
     const how_often_write = 1000;
     let fileData;
@@ -494,16 +499,34 @@ app.post('/submit', async (req, res) => {
             if (settings.model.toLowerCase().startsWith("o1")) {
                 settings.temperature = 1
             }
-            completion = await openai.chat.completions.create({
-                messages: messages,
-                model: settings.model,
-                max_completion_tokens: settings.maxTokens,
-                temperature: settings.temperature,
-                top_p: settings.topP,
-                frequency_penalty: settings.frequencyPenalty,
-                presence_penalty: settings.prescencePenalty,
-                stream: true,
-            });
+            if (settings.model.toLowerCase().startsWith("o3")) {
+                settings.temperature = 1
+                settings.reasoning_effort = "high"
+            }
+            if (settings.model.toLowerCase().includes('deepseek')) {
+                completion = await deepseek.chat.completions.create({
+                    messages: messages,
+                    model: settings.model,
+                    max_completion_tokens: settings.maxTokens,
+                    temperature: settings.temperature,
+                    top_p: settings.topP,
+                    frequency_penalty: settings.frequencyPenalty,
+                    presence_penalty: settings.prescencePenalty,
+                    stream: true,
+                });
+            } else {
+                completion = await openai.chat.completions.create({
+                    messages: messages,
+                    model: settings.model,
+                    max_completion_tokens: settings.maxTokens,
+                    temperature: settings.temperature,
+                    top_p: settings.topP,
+                    frequency_penalty: settings.frequencyPenalty,
+                    presence_penalty: settings.prescencePenalty,
+                    reasoning_effort: settings.reasoningEffort,
+                    stream: true,
+                });
+            }
         }
 
         res.writeHead(200, {
@@ -544,6 +567,7 @@ app.post('/submit', async (req, res) => {
         let i = 0;
         let last_write_time = new Date().getTime();
 
+        let is_reasoning = false;
         for await (const chunk of completion) {
             if (settings.model.toLowerCase().includes('claude')) {
                 if (chunk.type === 'content_block_delta') {
@@ -558,15 +582,27 @@ app.post('/submit', async (req, res) => {
                     i += 1;
                 }
             } else {
-                if (chunk.choices[0].delta.content) {
-                    messagesTree.currentNode.message.content += chunk.choices[0].delta.content;
+                async function addContent(content) {
+                    messagesTree.currentNode.message.content += content;
                     if (new Date().getTime() - last_write_time > how_often_write) {
                         last_write_time = new Date().getTime();
                         fileData.messages = stringify(messagesTree);
                         allChats[currentChatIndex].messages = fileData.messages;
                         await writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
                     }
-                    res.write(JSON.stringify({ "chunk": chunk.choices[0].delta.content }) + "<1|endoftext|1>");
+                    res.write(JSON.stringify({ "chunk": content }) + "<1|endoftext|1>");
+                }
+                let delta = chunk.choices[0].delta;
+                if (delta.reasoning_content && !is_reasoning) {
+                    is_reasoning = true;
+                    await addContent("<thinking>\n")
+                } else if (is_reasoning && !delta.reasoning_content) {
+                    is_reasoning = false;
+                    await addContent("\n</thinking>\n\n")
+                }
+
+                if (delta.content || delta.reasoning_content) {
+                    await addContent(delta.content || delta.reasoning_content);
                     i += 1;
                 }
             }

@@ -461,6 +461,7 @@ app.post('/submit', async (req, res) => {
     let currentChatIndex = null;
     try {
         const startTime = new Date().getTime();
+        let stream = true;
 
         let completion;
         if (isClaude) {
@@ -496,6 +497,9 @@ app.post('/submit', async (req, res) => {
                 top_p: settings.topP,
             });
         } else {
+            if (settings.model == "o1") {
+                stream = false;
+            }
             if (settings.model.toLowerCase().startsWith("o1")) {
                 settings.temperature = 1
             }
@@ -512,7 +516,7 @@ app.post('/submit', async (req, res) => {
                     top_p: settings.topP,
                     frequency_penalty: settings.frequencyPenalty,
                     presence_penalty: settings.prescencePenalty,
-                    stream: true,
+                    stream,
                 });
             } else {
                 completion = await openai.chat.completions.create({
@@ -524,7 +528,7 @@ app.post('/submit', async (req, res) => {
                     frequency_penalty: settings.frequencyPenalty,
                     presence_penalty: settings.prescencePenalty,
                     reasoning_effort: settings.reasoningEffort,
-                    stream: true,
+                    stream,
                 });
             }
         }
@@ -567,6 +571,8 @@ app.post('/submit', async (req, res) => {
         let i = 0;
         let last_write_time = new Date().getTime();
 
+        completion = [completion.choices[0].message]
+
         let is_reasoning = false;
         for await (const chunk of completion) {
             if (settings.model.toLowerCase().includes('claude')) {
@@ -592,7 +598,12 @@ app.post('/submit', async (req, res) => {
                     }
                     res.write(JSON.stringify({ "chunk": content }) + "<1|endoftext|1>");
                 }
-                let delta = chunk.choices[0].delta;
+                let delta;
+                if (stream) {
+                    delta = chunk.choices[0].delta
+                } else {
+                    delta = chunk
+                }
                 if (delta.reasoning_content && !is_reasoning) {
                     is_reasoning = true;
                     await addContent("<thinking>\n")

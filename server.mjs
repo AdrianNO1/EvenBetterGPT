@@ -500,10 +500,7 @@ app.post('/submit', async (req, res) => {
             if (settings.model == "o1") {
                 stream = false;
             }
-            if (settings.model.toLowerCase().startsWith("o1")) {
-                settings.temperature = 1
-            }
-            if (settings.model.toLowerCase().startsWith("o3")) {
+            if (settings.model.toLowerCase().startsWith("o1") || settings.model.toLowerCase().startsWith("o3")) {
                 settings.temperature = 1
                 settings.reasoning_effort = "high"
             }
@@ -606,10 +603,10 @@ app.post('/submit', async (req, res) => {
                 }
                 if (delta.reasoning_content && !is_reasoning) {
                     is_reasoning = true;
-                    await addContent("<thinking>\n")
+                    await addContent("<thinking>\n\n")
                 } else if (is_reasoning && !delta.reasoning_content) {
                     is_reasoning = false;
-                    await addContent("\n</thinking>\n\n")
+                    await addContent("\n\n\n</thinking>\n\n\n")
                 }
 
                 if (delta.content || delta.reasoning_content) {

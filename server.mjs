@@ -568,7 +568,9 @@ app.post('/submit', async (req, res) => {
         let i = 0;
         let last_write_time = new Date().getTime();
 
-        completion = [completion.choices[0].message]
+        if (!stream) {
+            completion = [completion.choices[0].message]
+        }
 
         let is_reasoning = false;
         for await (const chunk of completion) {

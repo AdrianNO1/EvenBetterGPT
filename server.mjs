@@ -449,9 +449,6 @@ app.post('/submit', async (req, res) => {
         messages.shift();
     }
 
-    console.log(messages);
-    console.log(messages[0].content)
-    console.log(messages[0].content.cache_control)
     if (messages[messages.length - 1].role == "assistant" && messages[messages.length - 1].content == "") {
         messages.pop();
     }
@@ -488,6 +485,12 @@ app.post('/submit', async (req, res) => {
                     }
                 }
             }
+            let thinking = {"type": "disabled"}
+            if (settings.model.includes("claude-3-7") && settings.maxTokens > 4000 && messages[messages.length - 1].role !== "assistant") {
+                thinking = {"type": "enabled", "budget_tokens": settings.maxTokens - 4000}
+                settings.temperature = 1
+                settings.topP = undefined
+            }
             completion = await anthropic.messages.stream({
                 system: systemMessage,
                 messages: messages,
@@ -495,6 +498,7 @@ app.post('/submit', async (req, res) => {
                 max_tokens: settings.maxTokens,
                 temperature: settings.temperature,
                 top_p: settings.topP,
+                thinking: thinking,
             });
         } else {
             if (settings.model == "o1") {
@@ -526,6 +530,9 @@ app.post('/submit', async (req, res) => {
                     presence_penalty: settings.prescencePenalty,
                     reasoning_effort: settings.reasoningEffort,
                     stream,
+                    stream_options: {
+                        include_usage: true
+                    }
                 });
             }
         }
@@ -573,17 +580,38 @@ app.post('/submit', async (req, res) => {
         }
 
         let is_reasoning = false;
+        let reasoning_start = false;
+        let reasoning_end = false;
         for await (const chunk of completion) {
             if (settings.model.toLowerCase().includes('claude')) {
+                if (chunk.type === 'content_block_start' && chunk.content_block.type === 'thinking') {
+                    reasoning_start = true;
+                    is_reasoning = true
+                }
+                if (chunk.type === 'content_block_stop' && is_reasoning) {
+                    is_reasoning = false
+                    reasoning_end = true;
+                }
                 if (chunk.type === 'content_block_delta') {
-                    messagesTree.currentNode.message.content += chunk.delta.text;
+                    let text = chunk.delta.text
+                    if (chunk.delta.type == "thinking_delta") {
+                        text = chunk.delta.thinking
+                    }
+                    if (reasoning_start) {
+                        text = "<thinking>\n\n" + text
+                        reasoning_start = false
+                    } else if (reasoning_end) {
+                        text = "\n\n\n</thinking>\n\n\n" + text
+                        reasoning_end = false
+                    }
+                    messagesTree.currentNode.message.content += text;
                     if (new Date().getTime() - last_write_time > how_often_write) {
                         last_write_time = new Date().getTime();
                         fileData.messages = stringify(messagesTree);
                         allChats[currentChatIndex].messages = fileData.messages;
                         await writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
                     }
-                    res.write(JSON.stringify({ "chunk": chunk.delta.text }) + "<1|endoftext|1>");
+                    res.write(JSON.stringify({ "chunk": text }) + "<1|endoftext|1>");
                     i += 1;
                 }
             } else {
@@ -596,6 +624,10 @@ app.post('/submit', async (req, res) => {
                         await writeToFile(path.join(chatsPath, chatId + ".json"), JSON.stringify(fileData, null, 4));
                     }
                     res.write(JSON.stringify({ "chunk": content }) + "<1|endoftext|1>");
+                }
+                if (!chunk.choices[0]) {
+                    console.log(chunk.usage)
+                    continue;
                 }
                 let delta;
                 if (stream) {

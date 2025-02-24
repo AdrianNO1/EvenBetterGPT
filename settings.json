@@ -1,7 +1,7 @@
 {
     "defaultChatSettings": {
         "systemPrompt": "",
-        "model": "claude-3-5-sonnet-20241022",
+        "model": "claude-3-7-sonnet-20250219",
         "maxTokens": 8192,
         "temperature": 0,
         "topP": 1,

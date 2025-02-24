@@ -1318,8 +1318,8 @@ o1Limits["maxTokens"] = 32768
 let gpt4oLatestCosts = {"input": 2.5/m1, "output": 10/m1}
 
 let modelsSettings = {
-    "claude-3-5-sonnet-20241022": {
-        "limits": midLimits,
+    "claude-3-7-sonnet-20250219": {
+        "limits": ultraHighLimits,
         "tokenCost": {"input": 3/m1, "output": 15/m1}
     },
     "gpt-4o": {
@@ -1409,6 +1409,18 @@ let modelsSettings = {
     "claude-3-opus-20240229": {
         "limits": defaultLimits,
         "tokenCost": {"input": 0.5/m1, "output": 1.5/m1}
+    },
+    "claude-3-5-sonnet-20241022": {
+        "limits": midLimits,
+        "tokenCost": {"input": 3/m1, "output": 15/m1}
+    },
+    "claude-3-5-haiku-20241022": {
+        "limits": midLimits,
+        "tokenCost": {"input": 1/m1, "output": 5/m1}
+    },
+    "gpt-4": {
+        "limits": defaultLimits,
+        "tokenCost": {"input": 15/m1, "output": 60/m1}
     },
 }
 settings["model"] = "gpt-3.5-turbo" //Object.keys(modelsSettings)[0]

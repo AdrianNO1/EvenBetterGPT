@@ -530,9 +530,11 @@ app.post('/submit', async (req, res) => {
                     presence_penalty: settings.prescencePenalty,
                     reasoning_effort: settings.reasoningEffort,
                     stream,
-                    stream_options: {
-                        include_usage: true
-                    }
+                    ...(stream && {
+                        stream_options: {
+                            include_usage: true
+                        }
+                    })
                 });
             }
         }

@@ -1322,6 +1322,10 @@ let modelsSettings = {
         "limits": ultraHighLimits,
         "tokenCost": {"input": 3/m1, "output": 15/m1}
     },
+    "gpt-4.5-preview": {
+        "limits": highLimits,
+        "tokenCost": {"input": 75/m1, "output": 150/m1}
+    },
     "gpt-4o": {
         "limits": highLimits,
         "tokenCost": gpt4oLatestCosts
@@ -1349,6 +1353,10 @@ let modelsSettings = {
     "deepseek-chat": {
         "limits": midLimits,
         "tokenCost": {"input": 15/m1, "output": 60/m1}
+    },
+    "ft:gpt-4o-2024-08-06:aivg-x:fedaykin:B5Lnmmtk": {
+        "limits": highLimits,
+        "tokenCost": gpt4oLatestCosts
     },
     "ft:gpt-4o-2024-08-06:aivg-x:schooldatav1:A4RqXyXA": {
         "limits": highLimits,

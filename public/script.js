@@ -1322,21 +1322,45 @@ let modelsSettings = {
         "limits": ultraHighLimits,
         "tokenCost": {"input": 3/m1, "output": 15/m1}
     },
-    "gpt-4.5-preview": {
-        "limits": highLimits,
-        "tokenCost": {"input": 75/m1, "output": 150/m1}
+    "o4-mini": {
+        "limits": ultraHighLimits,
+        "tokenCost": {"input": 1.1/m1, "output": 4.4/m1}
     },
-    "gpt-4o": {
-        "limits": highLimits,
-        "tokenCost": gpt4oLatestCosts
+    "o3": {
+        "limits": ultraHighLimits,
+        "tokenCost": {"input": 10/m1, "output": 40/m1}
     },
     "o3-mini": {
         "limits": ultraHighLimits,
         "tokenCost": {"input": 1.1/m1, "output": 4.4/m1}
     },
+    "gpt-4.5-preview": {
+        "limits": highLimits,
+        "tokenCost": {"input": 75/m1, "output": 150/m1}
+    },
+    "gpt-4.1": {
+        "limits": highLimits,
+        "tokenCost": {"input": 2/m1, "output": 8/m1}
+    },
+    "gpt-4.1-mini": {
+        "limits": highLimits,
+        "tokenCost": {"input": 0.4/m1, "output": 1.6/m1}
+    },
+    "gpt-4.1-nano": {
+        "limits": highLimits,
+        "tokenCost": {"input": 0.1/m1, "output": 0.4/m1}
+    },
     "o1": {
         "limits": veryHighLimits,
         "tokenCost": {"input": 15/m1, "output": 60/m1}
+    },
+    "o1-pro": {
+        "limits": veryHighLimits,
+        "tokenCost": {"input": 150/m1, "output": 600/m1}
+    },
+    "o3-pro": {
+        "limits": ultraHighLimits,
+        "tokenCost": {"input": 100/m1, "output": 400/m1}
     },
     "deepseek-reasoner": {
         "limits": midLimits,
@@ -1401,6 +1425,10 @@ let modelsSettings = {
     "gpt-4o-mini": {
         "limits": highLimits,
         "tokenCost": {"input": 0.15/m1, "output": 0.6/m1}
+    },
+    "gpt-4o": {
+        "limits": highLimits,
+        "tokenCost": gpt4oLatestCosts
     },
     "gpt-4-turbo": {
         "limits": defaultLimits,

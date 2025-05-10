@@ -1,8 +1,9 @@
+PS: This is an old version. I am currently working on v2 with next.js as a monetizable product. It's still WIP, but you can see it over at https://branching.chat
+
 # EvenBetterGPT
 
 EvenBetterGPT is a ChatGPT-like UI for using AI chatbots through OpenAI's or Anthropic's API with a simple and feature-rich interface.
 
-PS: I'm working on v2 with next.js as a monetizable product :)
 ![image](https://github.com/user-attachments/assets/06d87a4d-a5b1-4402-aadc-e02503b9f8f1)
 
 ## Features

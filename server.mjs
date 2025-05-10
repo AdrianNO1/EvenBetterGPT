@@ -504,7 +504,7 @@ app.post('/submit', async (req, res) => {
             // if (settings.model == "o1") {
             //     stream = false;
             // }
-            if (settings.model.toLowerCase().startsWith("o1") || settings.model.toLowerCase().startsWith("o3")) {
+            if (settings.model.toLowerCase().startsWith("o1") || settings.model.toLowerCase().startsWith("o3") || settings.model.toLowerCase().startsWith("o4")) {
                 settings.temperature = 1
                 settings.reasoning_effort = "high"
             }

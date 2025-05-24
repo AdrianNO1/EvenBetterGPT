@@ -110,7 +110,7 @@ function messageToHTML(content) {
         }
     });
 
-    console.log(temp.innerHTML)
+    // console.log(temp.innerHTML)
     const html = temp.innerHTML.replace(unclosedCodeBlockString, "");
     
     return html;
@@ -240,11 +240,8 @@ function utilityCache(button){
     let node = messagesTree.getNodeFromIndex(obj.messageIndex)
     if (typeof node.message.content == "string"){
         node.message.content = [{"type": "text", "text": node.message.content, "cache_control": {"type": "ephemeral"}}]
-        console.log(node.message.content)
-        console.log("heaaaa")
     } else {
         node.message.content[0].cache_control = {"type": "ephemeral"}
-        console.log("he")
     }
     obj.querySelector(".cache").style.display = "none"
     obj.querySelector(".cacheRemove").style.display = "block"
@@ -385,11 +382,11 @@ function utilityEdit(button){
         messagesTree.branchOut(messagesTree.getNodeFromIndex(obj.messageIndex), false);
         messages = messagesTree.getMessagesList();
         if (typeof messages[obj.messageIndex].content != "string"){
-            console.log(obj.querySelector(".message").innerText)
+            // console.log(obj.querySelector(".message").innerText)
             messages[obj.messageIndex].content[0].text = obj.querySelector(".message").innerText;
         }
         else{
-            console.log(obj.querySelector(".message").innerText)
+            // console.log(obj.querySelector(".message").innerText)
             messages[obj.messageIndex].content = obj.querySelector(".message").innerText;
         }
         obj.querySelector(".message").innerHTML = messageToHTML(obj.querySelector(".message").innerText) + imagesHTML;
@@ -491,10 +488,7 @@ function createNewImageElement(backgroundImage){
             node.images.splice(indexToRemove, 1)
             messages = messagesTree.getMessagesList()
 
-            console.log("aa", node.images)
-            console.log(node.id)
             getTokenCost(node).then(tokenCost => {
-                console.log("NEW TOKEN COST:", tokenCost)
                 node.tokens = tokenCost
                 updateTokenCosts()
                 saveChat()
@@ -925,7 +919,6 @@ function generateNewTemplateString(){
     getTokenCost(newNode).then(tokenCost => {
         newNode.tokens = tokenCost
         let str = Flatted.stringify(tempTree)
-        console.log(str)
     }).catch(error => {
         alert("btw newNode.tokens is now NaN. Failed to get token cost:", error);
         console.log("error from hehere")
@@ -953,7 +946,6 @@ async function getTokenCost(node){
     }).then(response => {
         if (response.error){
             alert(response.error)
-            console.log(response)
         }
         else{
             return response.count
@@ -1304,6 +1296,12 @@ midLimits["maxTokens"] = 8192
 let veryHighLimits = JSON.parse(JSON.stringify(defaultLimits))
 veryHighLimits["maxTokens"] = 32768
 
+let thirtyKLimits = JSON.parse(JSON.stringify(defaultLimits))
+thirtyKLimits["maxTokens"] = 32000
+
+let sixtyKLimits = JSON.parse(JSON.stringify(defaultLimits))
+sixtyKLimits["maxTokens"] = 64000
+
 let ultraHighLimits = JSON.parse(JSON.stringify(defaultLimits))
 ultraHighLimits["maxTokens"] = 100000
 
@@ -1318,9 +1316,13 @@ o1Limits["maxTokens"] = 32768
 let gpt4oLatestCosts = {"input": 2.5/m1, "output": 10/m1}
 
 let modelsSettings = {
-    "claude-3-7-sonnet-20250219": {
-        "limits": ultraHighLimits,
+    "claude-sonnet-4-20250514": {
+        "limits": sixtyKLimits,
         "tokenCost": {"input": 3/m1, "output": 15/m1}
+    },
+    "claude-opus-4-20250514": {
+        "limits": thirtyKLimits,
+        "tokenCost": {"input": 15/m1, "output": 75/m1}
     },
     "o4-mini": {
         "limits": ultraHighLimits,
@@ -1329,10 +1331,6 @@ let modelsSettings = {
     "o3": {
         "limits": ultraHighLimits,
         "tokenCost": {"input": 10/m1, "output": 40/m1}
-    },
-    "o3-mini": {
-        "limits": ultraHighLimits,
-        "tokenCost": {"input": 1.1/m1, "output": 4.4/m1}
     },
     "gpt-4.5-preview": {
         "limits": highLimits,
@@ -1373,6 +1371,10 @@ let modelsSettings = {
     "o1-preview": {
         "limits": highLimits,
         "tokenCost": {"input": 15/m1, "output": 60/m1}
+    },
+    "o3-mini": {
+        "limits": ultraHighLimits,
+        "tokenCost": {"input": 1.1/m1, "output": 4.4/m1}
     },
     "deepseek-chat": {
         "limits": midLimits,
@@ -1448,6 +1450,10 @@ let modelsSettings = {
     },
     "claude-3-5-sonnet-20241022": {
         "limits": midLimits,
+        "tokenCost": {"input": 3/m1, "output": 15/m1}
+    },
+    "claude-3-7-sonnet-20250219": {
+        "limits": sixtyKLimits,
         "tokenCost": {"input": 3/m1, "output": 15/m1}
     },
     "claude-3-5-haiku-20241022": {
@@ -1702,6 +1708,7 @@ function sidebarNewChat(name, id, atStart=false){
 }
 
 function loadChat(chat, initial_load=false, useLastUsedChat=false){
+    console.log("loading chat", chat.id)
     currentChatId = chat.id
     let newObj = Flatted.parse(chat.messages)
     if (initial_load && !useLastUsedChat){
@@ -1875,7 +1882,6 @@ Top P: ${settings["topP"]}\n\n\n`
         }
     }
     setTimeout(async() => {await window.navigator.clipboard.writeText(exportedText); console.log("text copied")}, 1500)
-    console.log(exportedText)
 }
 
 function toggleMobileMenu() {

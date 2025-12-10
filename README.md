@@ -1,4 +1,4 @@
-PS: This is an old version. I am currently working on v2 with next.js as a monetizable product. It's still WIP, but you can see it over at https://branching.chat
+PS: This is an old version. I have since made v2 with next.js as a monetizable product, which you can see over at https://branching.chat
 
 # EvenBetterGPT
 
